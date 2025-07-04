@@ -24,9 +24,31 @@ if [ "$EUID" -eq 0 ]; then
     exit 1
 fi
 
-# Stop the indicator if running
-print_colored $YELLOW "⏹️ Stopping battery indicator..."
+# Check if installed via package manager
+if dpkg -l | grep -q asus-battery-limiter; then
+    print_colored $YELLOW "📦 Package installation detected"
+    print_colored $BLUE "To uninstall the .deb package, use:"
+    echo "sudo apt remove asus-battery-limiter"
+    echo ""
+    read -p "Do you want to uninstall the package now? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        sudo apt remove asus-battery-limiter
+        print_colored $GREEN "✅ Package uninstalled successfully!"
+        exit 0
+    else
+        print_colored $YELLOW "Continuing with manual uninstall..."
+    fi
+fi
+
+# Stop all battery limiter processes
+print_colored $YELLOW "⏹️ Stopping battery indicator and other processes..."
 pkill -f battery-indicator || true
+pkill -f battery-gui || true
+pkill -f battery-cli || true
+
+# Wait for processes to stop
+sleep 2
 
 # Remove executables
 print_colored $YELLOW "🗑️ Removing executables..."
@@ -36,16 +58,23 @@ sudo rm -f /usr/local/bin/battery-gui
 sudo rm -f /usr/local/bin/battery-indicator
 sudo rm -f /usr/local/bin/set-charge-limit.sh
 
-# Remove desktop entries
+# Remove autostart entries
 print_colored $YELLOW "🗑️ Removing autostart entries..."
-rm -f ~/.config/autostart/battery-limiter.desktop
+rm -f ~/.config/autostart/battery-limiter.desktop || true
+rm -f ~/.config/autostart/asus-battery-limiter.desktop || true
+sudo rm -f /etc/xdg/autostart/asus-battery-limiter.desktop || true
 
 # Remove sudo permissions
 print_colored $YELLOW "🔐 Removing sudo permissions..."
-sudo rm -f /etc/sudoers.d/battery-limiter
+sudo rm -f /etc/sudoers.d/asus-battery-limiter
 
 # Update desktop database
-sudo update-desktop-database
+print_colored $YELLOW "🔄 Updating desktop database..."
+if command -v update-desktop-database >/dev/null 2>&1; then
+    sudo update-desktop-database || true
+fi
 
 print_colored $GREEN "✅ Uninstallation completed!"
+print_colored $BLUE "ℹ️ Your current battery settings will remain as they were last set"
+print_colored $YELLOW "💡 To reset battery limit to default, run: echo 100 | sudo tee /sys/class/power_supply/BAT0/charge_control_end_threshold"
 print_colored $BLUE "ℹ️ Your battery settings will remain as they were last set"

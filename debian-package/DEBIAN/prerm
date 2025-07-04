@@ -2,14 +2,46 @@
 
 set -e
 
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+print_colored() {
+    echo -e "${1}${2}${NC}"
+}
+
+print_colored $BLUE "🗑️ Uninstalling ASUS Battery Limiter..."
+
 # Stop the indicator if running
+print_colored $YELLOW "⏹️ Stopping battery indicator..."
 pkill -f battery-indicator || true
 
+# Stop the GUI if running
+print_colored $YELLOW "⏹️ Stopping battery GUI..."
+pkill -f battery-gui || true
+
+# Kill any other battery limiter processes
+pkill -f battery-cli || true
+pkill -f battery-limit || true
+
+# Wait a moment for processes to terminate
+sleep 2
+
+# Remove user autostart entries (in case they exist)
+print_colored $YELLOW "🧹 Cleaning user autostart entries..."
+rm -f ~/.config/autostart/battery-limiter.desktop || true
+rm -f ~/.config/autostart/asus-battery-limiter.desktop || true
+
 # Update desktop database
+print_colored $YELLOW "🔄 Updating desktop database..."
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database || true
 fi
 
-echo "ASUS Battery Limiter removed successfully!"
+print_colored $GREEN "✅ ASUS Battery Limiter removed successfully!"
+print_colored $BLUE "ℹ️ Your current battery settings will remain unchanged"
 
 exit 0

@@ -11,6 +11,8 @@ A comprehensive battery charge limit management tool for ASUS laptops with multi
 - 🎨 **Colorful interactive CLI**
 - 🔐 **Proper privilege handling**
 - 🚀 **Easy-to-use GUI interface**
+- 🔍 **Automatic update checking** from GitHub
+- 🔄 **Auto-start system tray integration**
 
 ## Components
 
