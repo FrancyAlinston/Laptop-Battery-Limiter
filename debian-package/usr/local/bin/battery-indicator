@@ -10,6 +10,9 @@ import subprocess
 import threading
 import time
 import os
+import json
+import urllib.request
+import urllib.error
 
 class BatteryLimitIndicator:
     def __init__(self):
@@ -30,6 +33,10 @@ class BatteryLimitIndicator:
         self.threshold_file = "/sys/class/power_supply/BAT0/charge_control_end_threshold"
         self.capacity_file = "/sys/class/power_supply/BAT0/capacity"
         self.status_file = "/sys/class/power_supply/BAT0/status"
+        
+        # Version info for updates
+        self.current_version = "1.0.0"
+        self.github_repo = "FrancyAlinston/Laptop-Battery-Limiter"
         
         # Update indicator
         self.update_indicator()
@@ -84,6 +91,11 @@ class BatteryLimitIndicator:
         refresh_item = Gtk.MenuItem(label="🔄 Refresh")
         refresh_item.connect("activate", self.refresh)
         menu.append(refresh_item)
+        
+        # Check for updates
+        update_item = Gtk.MenuItem(label="🔍 Check for Updates")
+        update_item.connect("activate", self.check_for_updates)
+        menu.append(update_item)
         
         # About
         about_item = Gtk.MenuItem(label="ℹ️ About")
@@ -167,6 +179,87 @@ class BatteryLimitIndicator:
     def refresh(self, widget):
         self.update_indicator()
         self.show_notification("Refreshed", "Battery information updated")
+
+    def check_for_updates(self, widget):
+        def check_updates():
+            try:
+                # GitHub API URL for latest release
+                api_url = f"https://api.github.com/repos/{self.github_repo}/releases/latest"
+                
+                # Make request to GitHub API
+                with urllib.request.urlopen(api_url, timeout=10) as response:
+                    if response.getcode() == 200:
+                        data = json.loads(response.read().decode())
+                        latest_version = data.get('tag_name', '').lstrip('v')
+                        release_url = data.get('html_url', '')
+                        release_notes = data.get('body', 'No release notes available.')
+                        
+                        # Compare versions
+                        if self.compare_versions(latest_version, self.current_version):
+                            # New version available
+                            GObject.idle_add(self.show_update_dialog, latest_version, release_url, release_notes)
+                        else:
+                            # Up to date
+                            GObject.idle_add(self.show_notification, 
+                                           "Up to Date", 
+                                           f"You have the latest version ({self.current_version})")
+                    else:
+                        raise Exception("Failed to fetch release information")
+                        
+            except urllib.error.URLError as e:
+                GObject.idle_add(self.show_notification, 
+                               "Update Check Failed", 
+                               "No internet connection or GitHub unavailable")
+            except Exception as e:
+                GObject.idle_add(self.show_notification, 
+                               "Update Check Failed", 
+                               f"Error: {str(e)}")
+        
+        # Show checking notification
+        self.show_notification("Checking for Updates", "Connecting to GitHub...")
+        
+        # Run check in background thread
+        thread = threading.Thread(target=check_updates)
+        thread.daemon = True
+        thread.start()
+
+    def compare_versions(self, version1, version2):
+        """Compare two version strings. Returns True if version1 > version2"""
+        try:
+            v1_parts = [int(x) for x in version1.split('.')]
+            v2_parts = [int(x) for x in version2.split('.')]
+            
+            # Pad shorter version with zeros
+            max_len = max(len(v1_parts), len(v2_parts))
+            v1_parts.extend([0] * (max_len - len(v1_parts)))
+            v2_parts.extend([0] * (max_len - len(v2_parts)))
+            
+            return v1_parts > v2_parts
+        except:
+            return False
+
+    def show_update_dialog(self, latest_version, release_url, release_notes):
+        """Show update available dialog"""
+        dialog = Gtk.MessageDialog(
+            parent=None,
+            flags=0,
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="Update Available!"
+        )
+        
+        dialog.format_secondary_text(
+            f"A new version ({latest_version}) is available!\n"
+            f"Current version: {self.current_version}\n\n"
+            f"Release Notes:\n{release_notes[:200]}{'...' if len(release_notes) > 200 else ''}\n\n"
+            f"Would you like to open the download page?"
+        )
+        
+        response = dialog.run()
+        if response == Gtk.ResponseType.YES:
+            subprocess.Popen(["xdg-open", release_url])
+        
+        dialog.destroy()
 
     def show_about(self, widget):
         dialog = Gtk.AboutDialog()

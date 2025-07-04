@@ -6,6 +6,9 @@ import subprocess
 import os
 import threading
 import time
+import json
+import urllib.request
+import urllib.error
 from pathlib import Path
 
 class BatteryControlGUI:
@@ -77,6 +80,10 @@ class BatteryControlGUI:
         self.threshold_file = "/sys/class/power_supply/BAT0/charge_control_end_threshold"
         self.capacity_file = "/sys/class/power_supply/BAT0/capacity"
         self.status_file = "/sys/class/power_supply/BAT0/status"
+        
+        # Version info for updates
+        self.current_version = "1.0.0"
+        self.github_repo = "FrancyAlinston/Laptop-Battery-Limiter"
 
     def create_widgets(self):
         """Create all GUI widgets"""
@@ -219,6 +226,10 @@ class BatteryControlGUI:
         refresh_btn = ttk.Button(actions_frame, text="🔄 Refresh",
                                command=self.refresh_battery_info)
         refresh_btn.pack(side='left', padx=5)
+        
+        update_btn = ttk.Button(actions_frame, text="🔍 Check Updates",
+                              command=self.check_for_updates)
+        update_btn.pack(side='left', padx=5)
 
         terminal_btn = ttk.Button(actions_frame, text="📟 Open Terminal CLI",
                                 command=self.open_terminal_cli)
@@ -375,6 +386,139 @@ class BatteryControlGUI:
                 subprocess.Popen(['xterm', '-e', 'bash -c "battery-cli; read -p \\"Press Enter to close...\\""'])
             except:
                 messagebox.showinfo("Info", "Please run 'battery-cli' in your terminal")
+
+    def check_for_updates(self):
+        """Check for updates from GitHub"""
+        def check_updates():
+            try:
+                # Update status
+                self.status_text.config(text="🔍 Checking for updates...")
+                
+                # GitHub API URL for latest release
+                api_url = f"https://api.github.com/repos/{self.github_repo}/releases/latest"
+                
+                # Make request to GitHub API
+                with urllib.request.urlopen(api_url, timeout=10) as response:
+                    if response.getcode() == 200:
+                        data = json.loads(response.read().decode())
+                        latest_version = data.get('tag_name', '').lstrip('v')
+                        release_url = data.get('html_url', '')
+                        release_notes = data.get('body', 'No release notes available.')
+                        
+                        # Compare versions
+                        if self.compare_versions(latest_version, self.current_version):
+                            # New version available
+                            self.root.after(0, lambda: self.show_update_dialog(latest_version, release_url, release_notes))
+                        else:
+                            # Up to date
+                            self.root.after(0, lambda: messagebox.showinfo(
+                                "Up to Date", 
+                                f"You have the latest version ({self.current_version})"
+                            ))
+                    else:
+                        raise Exception("Failed to fetch release information")
+                        
+            except urllib.error.URLError:
+                self.root.after(0, lambda: messagebox.showerror(
+                    "Update Check Failed", 
+                    "No internet connection or GitHub unavailable"
+                ))
+            except Exception as e:
+                self.root.after(0, lambda: messagebox.showerror(
+                    "Update Check Failed", 
+                    f"Error: {str(e)}"
+                ))
+            finally:
+                self.root.after(0, lambda: self.status_text.config(text="Ready"))
+        
+        # Run check in background thread
+        threading.Thread(target=check_updates, daemon=True).start()
+
+    def compare_versions(self, version1, version2):
+        """Compare two version strings. Returns True if version1 > version2"""
+        try:
+            v1_parts = [int(x) for x in version1.split('.')]
+            v2_parts = [int(x) for x in version2.split('.')]
+            
+            # Pad shorter version with zeros
+            max_len = max(len(v1_parts), len(v2_parts))
+            v1_parts.extend([0] * (max_len - len(v1_parts)))
+            v2_parts.extend([0] * (max_len - len(v2_parts)))
+            
+            return v1_parts > v2_parts
+        except:
+            return False
+
+    def show_update_dialog(self, latest_version, release_url, release_notes):
+        """Show update available dialog"""
+        update_window = tk.Toplevel(self.root)
+        update_window.title("Update Available")
+        update_window.geometry("500x400")
+        update_window.configure(bg=self.bg_color)
+        update_window.resizable(False, False)
+        
+        # Make it modal
+        update_window.transient(self.root)
+        update_window.grab_set()
+        
+        # Center the window
+        update_window.geometry("+%d+%d" % (
+            self.root.winfo_rootx() + 50,
+            self.root.winfo_rooty() + 50
+        ))
+        
+        main_frame = ttk.Frame(update_window, style='Dark.TFrame')
+        main_frame.pack(fill='both', expand=True, padx=20, pady=20)
+        
+        # Title
+        title_label = ttk.Label(main_frame, text="🎉 Update Available!", style='Title.TLabel')
+        title_label.pack(pady=(0, 10))
+        
+        # Version info
+        version_frame = ttk.Frame(main_frame, style='Card.TFrame')
+        version_frame.pack(fill='x', pady=10, padx=10, ipady=10)
+        
+        ttk.Label(version_frame, text=f"Current Version: {self.current_version}", style='Card.TLabel').pack(anchor='w', padx=10)
+        ttk.Label(version_frame, text=f"Latest Version: {latest_version}", style='Accent.TLabel').pack(anchor='w', padx=10)
+        
+        # Release notes
+        notes_label = ttk.Label(main_frame, text="Release Notes:", style='Dark.TLabel')
+        notes_label.pack(anchor='w', pady=(10, 5))
+        
+        # Text widget for release notes
+        text_frame = ttk.Frame(main_frame, style='Card.TFrame')
+        text_frame.pack(fill='both', expand=True, pady=5)
+        
+        text_widget = tk.Text(text_frame, height=8, wrap=tk.WORD, 
+                             bg=self.card_color, fg=self.text_color,
+                             font=('Segoe UI', 9))
+        scrollbar = ttk.Scrollbar(text_frame, orient="vertical", command=text_widget.yview)
+        text_widget.configure(yscrollcommand=scrollbar.set)
+        
+        text_widget.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+        scrollbar.pack(side="right", fill="y", pady=5)
+        
+        text_widget.insert(tk.END, release_notes)
+        text_widget.config(state=tk.DISABLED)
+        
+        # Buttons
+        button_frame = ttk.Frame(main_frame, style='Dark.TFrame')
+        button_frame.pack(fill='x', pady=(10, 0))
+        
+        def download_update():
+            import webbrowser
+            webbrowser.open(release_url)
+            update_window.destroy()
+        
+        def close_dialog():
+            update_window.destroy()
+        
+        download_btn = ttk.Button(button_frame, text="🔗 Download Update", 
+                                 command=download_update, style='Accent.TButton')
+        download_btn.pack(side='left', padx=5)
+        
+        close_btn = ttk.Button(button_frame, text="Close", command=close_dialog)
+        close_btn.pack(side='right', padx=5)
 
 def main():
     root = tk.Tk()
