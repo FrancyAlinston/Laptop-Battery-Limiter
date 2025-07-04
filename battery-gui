@@ -1,0 +1,392 @@
+#!/usr/bin/env python3
+
+import tkinter as tk
+from tkinter import ttk, messagebox
+import subprocess
+import os
+import threading
+import time
+from pathlib import Path
+
+class BatteryControlGUI:
+    def __init__(self, root):
+        self.root = root
+        self.setup_window()
+        self.setup_variables()
+        self.create_widgets()
+        self.update_battery_info()
+        self.start_auto_refresh()
+
+    def setup_window(self):
+        """Configure the main window"""
+        self.root.title("ASUS Battery Control Center")
+        self.root.geometry("450x600")
+        self.root.resizable(False, False)
+
+        # Dark theme colors
+        self.bg_color = "#2b2b2b"
+        self.card_color = "#3c3c3c"
+        self.accent_color = "#4CAF50"
+        self.text_color = "#ffffff"
+        self.secondary_text = "#b0b0b0"
+
+        self.root.configure(bg=self.bg_color)
+
+        # Configure styles
+        self.setup_styles()
+
+    def setup_styles(self):
+        """Setup custom styles for widgets"""
+        style = ttk.Style()
+        style.theme_use('clam')
+
+        # Configure dark theme
+        style.configure('Dark.TFrame', background=self.bg_color)
+        style.configure('Card.TFrame', background=self.card_color, relief='raised', borderwidth=1)
+        style.configure('Dark.TLabel', background=self.bg_color, foreground=self.text_color, font=('Segoe UI', 10))
+        style.configure('Title.TLabel', background=self.bg_color, foreground=self.text_color, font=('Segoe UI', 14, 'bold'))
+        style.configure('Card.TLabel', background=self.card_color, foreground=self.text_color, font=('Segoe UI', 10))
+        style.configure('Accent.TLabel', background=self.card_color, foreground=self.accent_color, font=('Segoe UI', 12, 'bold'))
+
+        # Custom button style
+        style.configure('Accent.TButton',
+                       background=self.accent_color,
+                       foreground='white',
+                       font=('Segoe UI', 10, 'bold'),
+                       focuscolor='none')
+        style.map('Accent.TButton',
+                 background=[('active', '#45a049')])
+
+        # Scale style
+        style.configure('Accent.Horizontal.TScale',
+                       background=self.card_color,
+                       troughcolor='#555555',
+                       borderwidth=0,
+                       lightcolor=self.accent_color,
+                       darkcolor=self.accent_color)
+
+    def setup_variables(self):
+        """Initialize variables"""
+        self.charge_limit_var = tk.IntVar(value=80)
+        self.current_level = tk.StringVar(value="--")
+        self.battery_status = tk.StringVar(value="--")
+        self.power_mode = tk.StringVar(value="Performance")
+        self.auto_refresh = True
+
+        # Battery threshold file
+        self.threshold_file = "/sys/class/power_supply/BAT0/charge_control_end_threshold"
+        self.capacity_file = "/sys/class/power_supply/BAT0/capacity"
+        self.status_file = "/sys/class/power_supply/BAT0/status"
+
+    def create_widgets(self):
+        """Create all GUI widgets"""
+        main_frame = ttk.Frame(self.root, style='Dark.TFrame')
+        main_frame.pack(fill='both', expand=True, padx=15, pady=15)
+
+        # Title
+        title_label = ttk.Label(main_frame, text="🔋 Battery Control Center", style='Title.TLabel')
+        title_label.pack(pady=(0, 20))
+
+        # Battery Status Card
+        self.create_battery_status_card(main_frame)
+
+        # Charging Limit Card
+        self.create_charging_limit_card(main_frame)
+
+        # Power Management Card
+        self.create_power_management_card(main_frame)
+
+        # Quick Actions Card
+        self.create_quick_actions_card(main_frame)
+
+        # Status Bar
+        self.create_status_bar(main_frame)
+
+    def create_battery_status_card(self, parent):
+        """Create battery status information card"""
+        card = ttk.Frame(parent, style='Card.TFrame')
+        card.pack(fill='x', pady=(0, 15), padx=5, ipady=15)
+
+        ttk.Label(card, text="⚡ Battery Status", style='Accent.TLabel').pack(pady=(10, 5))
+
+        # Battery level display
+        level_frame = ttk.Frame(card, style='Card.TFrame')
+        level_frame.pack(fill='x', padx=20, pady=10)
+
+        ttk.Label(level_frame, text="Current Level:", style='Card.TLabel').pack(side='left')
+        self.level_label = ttk.Label(level_frame, textvariable=self.current_level, style='Accent.TLabel')
+        self.level_label.pack(side='right')
+
+        # Battery status
+        status_frame = ttk.Frame(card, style='Card.TFrame')
+        status_frame.pack(fill='x', padx=20, pady=5)
+
+        ttk.Label(status_frame, text="Status:", style='Card.TLabel').pack(side='left')
+        self.status_label = ttk.Label(status_frame, textvariable=self.battery_status, style='Card.TLabel')
+        self.status_label.pack(side='right')
+
+        # Progress bar for battery level
+        self.battery_progress = ttk.Progressbar(card, length=350, mode='determinate')
+        self.battery_progress.pack(pady=10)
+
+    def create_charging_limit_card(self, parent):
+        """Create charging limit control card"""
+        card = ttk.Frame(parent, style='Card.TFrame')
+        card.pack(fill='x', pady=(0, 15), padx=5, ipady=15)
+
+        ttk.Label(card, text="🎯 Charging Limit", style='Accent.TLabel').pack(pady=(10, 5))
+
+        # Current limit display
+        limit_display_frame = ttk.Frame(card, style='Card.TFrame')
+        limit_display_frame.pack(fill='x', padx=20, pady=10)
+
+        ttk.Label(limit_display_frame, text="Current Limit:", style='Card.TLabel').pack(side='left')
+        self.limit_display = ttk.Label(limit_display_frame, text="80%", style='Accent.TLabel')
+        self.limit_display.pack(side='right')
+
+        # Slider for setting limit
+        slider_frame = ttk.Frame(card, style='Card.TFrame')
+        slider_frame.pack(fill='x', padx=20, pady=10)
+
+        ttk.Label(slider_frame, text="50%", style='Card.TLabel').pack(side='left')
+
+        self.limit_scale = ttk.Scale(slider_frame,
+                                   from_=50, to=100,
+                                   orient='horizontal',
+                                   variable=self.charge_limit_var,
+                                   style='Accent.Horizontal.TScale',
+                                   command=self.on_scale_change)
+        self.limit_scale.pack(side='left', fill='x', expand=True, padx=10)
+
+        ttk.Label(slider_frame, text="100%", style='Card.TLabel').pack(side='right')
+
+        # Apply button
+        apply_btn = ttk.Button(card, text="Apply Charging Limit",
+                              command=self.apply_charging_limit,
+                              style='Accent.TButton')
+        apply_btn.pack(pady=10)
+
+    def create_power_management_card(self, parent):
+        """Create power management controls"""
+        card = ttk.Frame(parent, style='Card.TFrame')
+        card.pack(fill='x', pady=(0, 15), padx=5, ipady=15)
+
+        ttk.Label(card, text="⚙️ Power Management", style='Accent.TLabel').pack(pady=(10, 5))
+
+        # Power mode selection
+        mode_frame = ttk.Frame(card, style='Card.TFrame')
+        mode_frame.pack(fill='x', padx=20, pady=10)
+
+        ttk.Label(mode_frame, text="Power Mode:", style='Card.TLabel').pack(anchor='w')
+
+        mode_buttons_frame = ttk.Frame(mode_frame, style='Card.TFrame')
+        mode_buttons_frame.pack(fill='x', pady=5)
+
+        modes = [("Power Saver", "powersave"), ("Balanced", "balanced"), ("Performance", "performance")]
+        for mode_name, mode_value in modes:
+            btn = ttk.Radiobutton(mode_buttons_frame, text=mode_name,
+                                variable=self.power_mode, value=mode_value,
+                                command=lambda m=mode_value: self.set_power_mode(m))
+            btn.pack(side='left', padx=5)
+
+    def create_quick_actions_card(self, parent):
+        """Create quick action buttons"""
+        card = ttk.Frame(parent, style='Card.TFrame')
+        card.pack(fill='x', pady=(0, 15), padx=5, ipady=15)
+
+        ttk.Label(card, text="🚀 Quick Actions", style='Accent.TLabel').pack(pady=(10, 5))
+
+        # Preset buttons
+        presets_frame = ttk.Frame(card, style='Card.TFrame')
+        presets_frame.pack(fill='x', padx=20, pady=10)
+
+        presets = [
+            ("60% Storage", 60),
+            ("80% Daily", 80),
+            ("100% Full", 100)
+        ]
+
+        for i, (text, value) in enumerate(presets):
+            btn = ttk.Button(presets_frame, text=text,
+                           command=lambda v=value: self.set_preset_limit(v))
+            btn.grid(row=0, column=i, padx=5, sticky='ew')
+            presets_frame.grid_columnconfigure(i, weight=1)
+
+        # Additional actions
+        actions_frame = ttk.Frame(card, style='Card.TFrame')
+        actions_frame.pack(fill='x', padx=20, pady=10)
+
+        refresh_btn = ttk.Button(actions_frame, text="🔄 Refresh",
+                               command=self.refresh_battery_info)
+        refresh_btn.pack(side='left', padx=5)
+
+        terminal_btn = ttk.Button(actions_frame, text="📟 Open Terminal CLI",
+                                command=self.open_terminal_cli)
+        terminal_btn.pack(side='right', padx=5)
+
+    def create_status_bar(self, parent):
+        """Create status bar at bottom"""
+        status_frame = ttk.Frame(parent, style='Dark.TFrame')
+        status_frame.pack(fill='x', pady=(10, 0))
+
+        self.status_text = ttk.Label(status_frame, text="Ready", style='Dark.TLabel')
+        self.status_text.pack(side='left')
+
+        self.last_update = ttk.Label(status_frame, text="", style='Dark.TLabel')
+        self.last_update.pack(side='right')
+
+    def on_scale_change(self, value):
+        """Handle scale value change"""
+        limit = int(float(value))
+        self.limit_display.config(text=f"{limit}%")
+
+    def check_root_access(self):
+        """Check if we have root access"""
+        return os.geteuid() == 0
+
+    def run_command_with_sudo(self, command):
+        """Run command with sudo if needed"""
+        try:
+            if self.check_root_access():
+                result = subprocess.run(command, shell=True, capture_output=True, text=True)
+            else:
+                # Use pkexec for GUI sudo prompt
+                sudo_command = f"pkexec bash -c '{command}'"
+                result = subprocess.run(sudo_command, shell=True, capture_output=True, text=True)
+
+            return result.returncode == 0, result.stdout, result.stderr
+        except Exception as e:
+            return False, "", str(e)
+
+    def apply_charging_limit(self):
+        """Apply the charging limit"""
+        limit = self.charge_limit_var.get()
+
+        def apply_limit():
+            self.status_text.config(text="Applying charging limit...")
+
+            command = f"echo {limit} > {self.threshold_file}"
+            success, stdout, stderr = self.run_command_with_sudo(command)
+
+            if success:
+                self.status_text.config(text=f"✅ Charging limit set to {limit}%")
+                self.refresh_battery_info()
+                messagebox.showinfo("Success", f"Charging limit successfully set to {limit}%")
+            else:
+                self.status_text.config(text="❌ Failed to set charging limit")
+                messagebox.showerror("Error", f"Failed to set charging limit:\n{stderr}")
+
+        threading.Thread(target=apply_limit, daemon=True).start()
+
+    def set_preset_limit(self, value):
+        """Set a preset charging limit"""
+        self.charge_limit_var.set(value)
+        self.limit_display.config(text=f"{value}%")
+        self.apply_charging_limit()
+
+    def set_power_mode(self, mode):
+        """Set system power mode"""
+        def set_mode():
+            commands = {
+                "powersave": "echo powersave | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor",
+                "balanced": "echo ondemand | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor",
+                "performance": "echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"
+            }
+
+            if mode in commands:
+                success, stdout, stderr = self.run_command_with_sudo(commands[mode])
+                if success:
+                    self.status_text.config(text=f"✅ Power mode set to {mode}")
+                else:
+                    self.status_text.config(text="❌ Failed to set power mode")
+
+        threading.Thread(target=set_mode, daemon=True).start()
+
+    def refresh_battery_info(self):
+        """Refresh battery information"""
+        def update_info():
+            try:
+                # Get current battery level
+                if os.path.exists(self.capacity_file):
+                    with open(self.capacity_file, 'r') as f:
+                        level = int(f.read().strip())
+                    self.current_level.set(f"{level}%")
+                    self.battery_progress['value'] = level
+
+                    # Color code the battery level
+                    if level <= 20:
+                        self.level_label.configure(foreground="#ff4444")
+                    elif level <= 50:
+                        self.level_label.configure(foreground="#ffaa00")
+                    else:
+                        self.level_label.configure(foreground=self.accent_color)
+
+                # Get battery status
+                if os.path.exists(self.status_file):
+                    with open(self.status_file, 'r') as f:
+                        status = f.read().strip()
+                    self.battery_status.set(status)
+
+                    # Set status icon
+                    status_icons = {
+                        "Charging": "🔌",
+                        "Discharging": "🔋",
+                        "Full": "✅",
+                        "Not charging": "⏸️"
+                    }
+                    icon = status_icons.get(status, "🔋")
+                    self.status_label.configure(text=f"{icon} {status}")
+
+                # Get current charging limit
+                if os.path.exists(self.threshold_file):
+                    with open(self.threshold_file, 'r') as f:
+                        current_limit = int(f.read().strip())
+                    self.charge_limit_var.set(current_limit)
+                    self.limit_display.config(text=f"{current_limit}%")
+
+                # Update last refresh time
+                current_time = time.strftime("%H:%M:%S")
+                self.last_update.config(text=f"Updated: {current_time}")
+
+            except Exception as e:
+                self.status_text.config(text=f"❌ Error reading battery info: {str(e)}")
+
+        threading.Thread(target=update_info, daemon=True).start()
+
+    def update_battery_info(self):
+        """Initial battery info update"""
+        self.refresh_battery_info()
+
+    def start_auto_refresh(self):
+        """Start automatic refresh of battery info"""
+        def auto_refresh():
+            while self.auto_refresh:
+                self.refresh_battery_info()
+                time.sleep(30)  # Refresh every 30 seconds
+
+        threading.Thread(target=auto_refresh, daemon=True).start()
+
+    def open_terminal_cli(self):
+        """Open terminal with CLI tool"""
+        try:
+            subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', 'battery-cli; read -p "Press Enter to close..."'])
+        except:
+            try:
+                subprocess.Popen(['xterm', '-e', 'bash -c "battery-cli; read -p \\"Press Enter to close...\\""'])
+            except:
+                messagebox.showinfo("Info", "Please run 'battery-cli' in your terminal")
+
+def main():
+    root = tk.Tk()
+    app = BatteryControlGUI(root)
+
+    # Handle window close
+    def on_closing():
+        app.auto_refresh = False
+        root.destroy()
+
+    root.protocol("WM_DELETE_WINDOW", on_closing)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
