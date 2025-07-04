@@ -55,12 +55,22 @@ python3 ./battery-gui
 
 ## Installation
 
-### Easy Installation
+### Easy Installation (.deb Package - Recommended)
+```bash
+# Build the package
+./build-deb.sh
+
+# Install with automatic dependency resolution
+sudo dpkg -i asus-battery-limiter_1.0.0_all.deb
+# Dependencies are automatically installed!
+```
+
+### Manual Installation
 ```bash
 ./install.sh
 ```
 
-### Manual Installation
+### Manual Steps
 1. Clone this repository
 2. Make scripts executable:
    ```bash
@@ -80,8 +90,10 @@ python3 ./battery-gui
 
 - ASUS laptop with battery charge control support
 - Linux system with sysfs battery interface
-- Python 3 and tkinter (for GUI)
+- Ubuntu/Debian-based distribution (for .deb package)
 - sudo privileges for setting limits
+
+**Note**: All Python dependencies are automatically installed when using the .deb package.
 
 ## Compatibility
 

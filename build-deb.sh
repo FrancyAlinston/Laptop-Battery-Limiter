@@ -55,9 +55,8 @@ dpkg-deb --contents "$PACKAGE_NAME"
 print_colored $GREEN "✅ Package built successfully!"
 print_colored $BLUE "📦 Package: $PACKAGE_NAME"
 echo
-print_colored $BLUE "🚀 To install:"
+print_colored $BLUE "🚀 To install (with automatic dependencies):"
 echo "sudo dpkg -i $PACKAGE_NAME"
-echo "sudo apt-get install -f  # If there are dependency issues"
 echo
 print_colored $BLUE "🗑️ To uninstall:"
 echo "sudo apt remove asus-battery-limiter"

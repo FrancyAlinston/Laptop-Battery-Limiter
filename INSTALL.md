@@ -4,6 +4,7 @@
 
 ### Prerequisites
 ```bash
+# Only dpkg-dev is needed for building
 sudo apt update
 sudo apt install dpkg-dev
 ```
@@ -15,9 +16,14 @@ sudo apt install dpkg-dev
 
 ### Install the Package
 ```bash
+# Install the package - all dependencies are automatically installed!
 sudo dpkg -i asus-battery-limiter_1.0.0_all.deb
-sudo apt-get install -f  # Install any missing dependencies
 ```
+
+**Note**: The package automatically installs all required dependencies including:
+- python3, python3-gi, python3-gi-cairo
+- gir1.2-gtk-3.0, gir1.2-appindicator3-0.1, gir1.2-notify-0.7
+- python3-tk, policykit-1
 
 ### Verify Installation
 ```bash
