@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -e
+
+# Check if battery control is supported
+THRESHOLD_FILE="/sys/class/power_supply/BAT0/charge_control_end_threshold"
+
+if [ ! -f "$THRESHOLD_FILE" ]; then
+    echo "Warning: Battery charge control file not found: $THRESHOLD_FILE"
+    echo "This package may not work on your system."
+fi
+
+# Update desktop database
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database || true
+fi
+
+# Notify user
+echo "ASUS Battery Limiter installed successfully!"
+echo "The system tray indicator will start automatically on next login."
+echo "To start it now, run: battery-indicator"
+
+exit 0

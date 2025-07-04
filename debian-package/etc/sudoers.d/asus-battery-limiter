@@ -1,0 +1,3 @@
+# Allow users to set battery charge limits without password
+%sudo ALL=(ALL) NOPASSWD: /usr/local/bin/set-charge-limit.sh
+%sudo ALL=(ALL) NOPASSWD: /bin/bash -c echo * > /sys/class/power_supply/BAT0/charge_control_end_threshold

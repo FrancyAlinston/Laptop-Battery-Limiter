@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e
+
+# Stop the indicator if running
+pkill -f battery-indicator || true
+
+# Update desktop database
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database || true
+fi
+
+echo "ASUS Battery Limiter removed successfully!"
+
+exit 0

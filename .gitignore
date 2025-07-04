@@ -43,3 +43,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Debian package build artifacts
+*.deb
+debian-package.deb
