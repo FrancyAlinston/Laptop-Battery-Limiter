@@ -21,8 +21,7 @@ A comprehensive battery charge limit management tool for ASUS laptops with multi
 
 ### GUI Application
 - **`battery-gui`** - Python/Tkinter GUI application
-- **`battery-gui-launcher.sh`** - GUI launcher with authentication
-- **`battery-indicator`** - System tray indicator with quick access menu
+- **`battery-indicator`** - System tray indicator with quick access menu and GUI launcher
 
 ## Quick Start
 
@@ -41,14 +40,15 @@ sudo ./battery-limit set 80
 sudo ./battery-cli
 ```
 
-### Launch GUI
-```bash
-./battery-gui-launcher.sh
-```
-
-### System Tray Indicator
+### System Tray Indicator (Recommended)
 ```bash
 ./battery-indicator
+```
+
+### GUI Application
+Access through system tray indicator or run directly:
+```bash
+python3 ./battery-gui
 ```
 
 ## Installation
@@ -62,7 +62,7 @@ sudo ./battery-cli
 1. Clone this repository
 2. Make scripts executable:
    ```bash
-   chmod +x battery-cli battery-limit battery-gui-launcher.sh set-charge-limit.sh battery-indicator install.sh
+   chmod +x battery-cli battery-limit set-charge-limit.sh battery-indicator install.sh
    ```
 3. For system-wide installation with system tray integration:
    ```bash

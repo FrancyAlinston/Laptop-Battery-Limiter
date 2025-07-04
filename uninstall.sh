@@ -35,11 +35,9 @@ sudo rm -f /usr/local/bin/battery-limit
 sudo rm -f /usr/local/bin/battery-gui
 sudo rm -f /usr/local/bin/battery-indicator
 sudo rm -f /usr/local/bin/set-charge-limit.sh
-sudo rm -f /usr/local/bin/battery-gui-launcher.sh
 
 # Remove desktop entries
-print_colored $YELLOW "🗑️ Removing desktop entries..."
-sudo rm -f /usr/share/applications/battery-limiter.desktop
+print_colored $YELLOW "🗑️ Removing autostart entries..."
 rm -f ~/.config/autostart/battery-limiter.desktop
 
 # Remove sudo permissions

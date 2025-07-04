@@ -54,15 +54,13 @@ sudo cp battery-limit /usr/local/bin/
 sudo cp battery-gui /usr/local/bin/
 sudo cp battery-indicator /usr/local/bin/
 sudo cp set-charge-limit.sh /usr/local/bin/
-sudo cp battery-gui-launcher.sh /usr/local/bin/
 
 # Make executable
 sudo chmod +x /usr/local/bin/battery-*
 sudo chmod +x /usr/local/bin/set-charge-limit.sh
 
 # Install desktop entries
-print_colored $YELLOW "🖥️ Installing desktop entries..."
-sudo cp battery-limiter.desktop /usr/share/applications/
+print_colored $YELLOW "🖥️ Setting up autostart..."
 
 # Create autostart entry
 cat > ~/.config/autostart/battery-limiter.desktop << EOF
