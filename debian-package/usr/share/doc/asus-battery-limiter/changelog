@@ -10,4 +10,4 @@ asus-battery-limiter (1.0.0) stable; urgency=low
   * Proper privilege handling with PolicyKit
   * Auto-start on login
 
- -- Your Name <your.email@example.com>  Fri, 04 Jul 2025 12:00:00 +0000
+ -- FrancyAlinston <francy@example.com>  Fri, 04 Jul 2025 12:00:00 +0000

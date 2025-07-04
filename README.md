@@ -114,4 +114,5 @@ This project is open source. Feel free to use, modify, and distribute.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit issues and pull requests.
+Contributions are welcome! Please feel free to submit issues and pull requests at:
+https://github.com/FrancyAlinston/Laptop-Battery-Limiter

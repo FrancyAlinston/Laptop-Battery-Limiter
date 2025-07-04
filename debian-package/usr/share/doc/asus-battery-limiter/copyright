@@ -1,10 +1,10 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: asus-battery-limiter
-Upstream-Contact: Your Name <your.email@example.com>
-Source: https://github.com/yourusername/asus-battery-limiter
+Upstream-Contact: FrancyAlinston <francy@example.com>
+Source: https://github.com/FrancyAlinston/Laptop-Battery-Limiter
 
 Files: *
-Copyright: 2025 Your Name <your.email@example.com>
+Copyright: 2025 FrancyAlinston <francy@example.com>
 License: MIT
 
 License: MIT
