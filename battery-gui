@@ -44,119 +44,337 @@ class BatteryControlGUI:
             # Default to light theme
             is_dark_theme = False
 
-            # Try different methods to detect theme based on desktop environment
-            try:
-                # GNOME/Ubuntu detection - Check GTK theme first
-                result = subprocess.run(['gsettings', 'get', 'org.gnome.desktop.interface', 'gtk-theme'],
-                                      capture_output=True, text=True, timeout=2)
-                if result.returncode == 0:
-                    theme_name = result.stdout.strip().strip("'\"").lower()
-                    if 'dark' in theme_name or 'black' in theme_name:
-                        is_dark_theme = True
-                        print(f"Detected dark theme from GTK theme: {theme_name}")
-                    else:
-                        print(f"Detected light theme from GTK theme: {theme_name}")
-            except Exception as e:
-                print(f"GTK theme detection failed: {e}")
+            # Get desktop environment info for better detection
+            desktop_env = os.environ.get('XDG_CURRENT_DESKTOP', '').lower()
+            desktop_session = os.environ.get('XDG_SESSION_DESKTOP', '').lower()
+            window_manager = os.environ.get('WINDOW_MANAGER', '').lower()
 
-            # If not detected yet, try color-scheme method (newer GNOME)
+            print(f"Desktop detection - Environment: {desktop_env}, Session: {desktop_session}, WM: {window_manager}")
+
+            # === GTK-based Desktop Environments ===
+
+            # GNOME/Ubuntu/Fedora detection (GTK 3/4)
             if not is_dark_theme:
                 try:
+                    # Try newer color-scheme method first (GTK 4 / GNOME 42+)
                     result = subprocess.run(['gsettings', 'get', 'org.gnome.desktop.interface', 'color-scheme'],
                                           capture_output=True, text=True, timeout=2)
                     if result.returncode == 0:
                         color_scheme = result.stdout.strip().strip("'\"").lower()
                         if 'dark' in color_scheme or 'prefer-dark' in color_scheme:
                             is_dark_theme = True
-                            print(f"Detected dark theme from color-scheme: {color_scheme}")
+                            print(f"Detected dark theme from GNOME color-scheme: {color_scheme}")
+                        else:
+                            print(f"Detected light theme from GNOME color-scheme: {color_scheme}")
                 except Exception as e:
-                    print(f"Color-scheme detection failed: {e}")
+                    print(f"GNOME color-scheme detection failed: {e}")
 
-            # If still not detected, try KDE
+            # Fallback to GTK theme detection (GTK 2/3)
             if not is_dark_theme:
                 try:
+                    result = subprocess.run(['gsettings', 'get', 'org.gnome.desktop.interface', 'gtk-theme'],
+                                          capture_output=True, text=True, timeout=2)
+                    if result.returncode == 0:
+                        theme_name = result.stdout.strip().strip("'\"").lower()
+                        if 'dark' in theme_name or 'black' in theme_name or 'adwaita-dark' in theme_name:
+                            is_dark_theme = True
+                            print(f"Detected dark theme from GTK theme: {theme_name}")
+                        else:
+                            print(f"Detected light theme from GTK theme: {theme_name}")
+                except Exception as e:
+                    print(f"GTK theme detection failed: {e}")
+
+            # === KDE Plasma (Qt-based) ===
+            if not is_dark_theme:
+                try:
+                    # Try KDE 5 first
                     result = subprocess.run(['kreadconfig5', '--group', 'General', '--key', 'ColorScheme'],
                                           capture_output=True, text=True, timeout=2)
                     if result.returncode == 0:
                         kde_scheme = result.stdout.strip().lower()
-                        if 'dark' in kde_scheme or 'breeze dark' in kde_scheme:
+                        if 'dark' in kde_scheme or 'breeze dark' in kde_scheme or 'breezedark' in kde_scheme:
                             is_dark_theme = True
-                            print(f"Detected dark theme from KDE: {kde_scheme}")
+                            print(f"Detected dark theme from KDE 5: {kde_scheme}")
+                        else:
+                            print(f"Detected light theme from KDE 5: {kde_scheme}")
                 except Exception as e:
-                    print(f"KDE theme detection failed: {e}")
+                    print(f"KDE 5 theme detection failed: {e}")
 
-            # If still not detected, try additional desktop environments
+            # Try KDE 4 fallback
             if not is_dark_theme:
                 try:
-                    # Try XFCE
-                    result = subprocess.run(['xfconf-query', '-c', 'xsettings', '-p', '/Net/ThemeName'], 
+                    result = subprocess.run(['kreadconfig', '--group', 'General', '--key', 'ColorScheme'],
+                                          capture_output=True, text=True, timeout=2)
+                    if result.returncode == 0:
+                        kde_scheme = result.stdout.strip().lower()
+                        if 'dark' in kde_scheme or 'obsidian' in kde_scheme:
+                            is_dark_theme = True
+                            print(f"Detected dark theme from KDE 4: {kde_scheme}")
+                        else:
+                            print(f"Detected light theme from KDE 4: {kde_scheme}")
+                except Exception as e:
+                    print(f"KDE 4 theme detection failed: {e}")
+
+            # === XFCE ===
+            if not is_dark_theme:
+                try:
+                    result = subprocess.run(['xfconf-query', '-c', 'xsettings', '-p', '/Net/ThemeName'],
                                           capture_output=True, text=True, timeout=2)
                     if result.returncode == 0:
                         xfce_theme = result.stdout.strip().lower()
-                        if 'dark' in xfce_theme or 'black' in xfce_theme:
+                        if 'dark' in xfce_theme or 'black' in xfce_theme or 'greybird-dark' in xfce_theme:
                             is_dark_theme = True
                             print(f"Detected dark theme from XFCE: {xfce_theme}")
+                        else:
+                            print(f"Detected light theme from XFCE: {xfce_theme}")
                 except Exception as e:
                     print(f"XFCE theme detection failed: {e}")
-                    
+
+                # Try XFCE window manager theme
                 try:
-                    # Try MATE
-                    result = subprocess.run(['gsettings', 'get', 'org.mate.interface', 'gtk-theme'], 
+                    result = subprocess.run(['xfconf-query', '-c', 'xfwm4', '-p', '/general/theme'],
+                                          capture_output=True, text=True, timeout=2)
+                    if result.returncode == 0:
+                        xfwm_theme = result.stdout.strip().lower()
+                        if 'dark' in xfwm_theme or 'black' in xfwm_theme:
+                            is_dark_theme = True
+                            print(f"Detected dark theme from XFWM: {xfwm_theme}")
+                except Exception as e:
+                    print(f"XFWM theme detection failed: {e}")
+
+            # === MATE ===
+            if not is_dark_theme:
+                try:
+                    result = subprocess.run(['gsettings', 'get', 'org.mate.interface', 'gtk-theme'],
                                           capture_output=True, text=True, timeout=2)
                     if result.returncode == 0:
                         mate_theme = result.stdout.strip().strip("'\"").lower()
-                        if 'dark' in mate_theme or 'black' in mate_theme:
+                        if 'dark' in mate_theme or 'black' in mate_theme or 'blackmate' in mate_theme:
                             is_dark_theme = True
                             print(f"Detected dark theme from MATE: {mate_theme}")
+                        else:
+                            print(f"Detected light theme from MATE: {mate_theme}")
                 except Exception as e:
                     print(f"MATE theme detection failed: {e}")
-                    
+
+            # === Cinnamon ===
+            if not is_dark_theme:
                 try:
-                    # Try Cinnamon
-                    result = subprocess.run(['gsettings', 'get', 'org.cinnamon.desktop.interface', 'gtk-theme'], 
+                    result = subprocess.run(['gsettings', 'get', 'org.cinnamon.desktop.interface', 'gtk-theme'],
                                           capture_output=True, text=True, timeout=2)
                     if result.returncode == 0:
                         cinnamon_theme = result.stdout.strip().strip("'\"").lower()
-                        if 'dark' in cinnamon_theme or 'black' in cinnamon_theme:
+                        if 'dark' in cinnamon_theme or 'black' in cinnamon_theme or 'mint-y-dark' in cinnamon_theme:
                             is_dark_theme = True
                             print(f"Detected dark theme from Cinnamon: {cinnamon_theme}")
+                        else:
+                            print(f"Detected light theme from Cinnamon: {cinnamon_theme}")
                 except Exception as e:
                     print(f"Cinnamon theme detection failed: {e}")
 
-            # Check environment variables
+            # === Budgie ===
             if not is_dark_theme:
                 try:
-                    # Check GTK_THEME environment variable
-                    gtk_theme = os.environ.get('GTK_THEME', '').lower()
-                    if gtk_theme and 'dark' in gtk_theme:
-                        is_dark_theme = True
-                        print(f"Detected dark theme from GTK_THEME env: {gtk_theme}")
+                    result = subprocess.run(['gsettings', 'get', 'org.gnome.desktop.interface', 'gtk-theme'],
+                                          capture_output=True, text=True, timeout=2)
+                    if result.returncode == 0 and 'budgie' in desktop_env:
+                        budgie_theme = result.stdout.strip().strip("'\"").lower()
+                        if 'dark' in budgie_theme or 'arc-dark' in budgie_theme or 'pocillo-dark' in budgie_theme:
+                            is_dark_theme = True
+                            print(f"Detected dark theme from Budgie: {budgie_theme}")
+                        else:
+                            print(f"Detected light theme from Budgie: {budgie_theme}")
+                except Exception as e:
+                    print(f"Budgie theme detection failed: {e}")
 
-                    # Check XDG_CURRENT_DESKTOP for additional hints
-                    desktop = os.environ.get('XDG_CURRENT_DESKTOP', '').lower()
-                    session = os.environ.get('XDG_SESSION_DESKTOP', '').lower()
-                    print(f"Desktop environment: {desktop}, Session: {session}")
+            # === Pantheon (elementary OS) ===
+            if not is_dark_theme:
+                try:
+                    result = subprocess.run(['gsettings', 'get', 'org.gnome.desktop.interface', 'gtk-theme'],
+                                          capture_output=True, text=True, timeout=2)
+                    if result.returncode == 0 and 'pantheon' in desktop_env:
+                        pantheon_theme = result.stdout.strip().strip("'\"").lower()
+                        if 'dark' in pantheon_theme or 'elementary-dark' in pantheon_theme:
+                            is_dark_theme = True
+                            print(f"Detected dark theme from Pantheon: {pantheon_theme}")
+                        else:
+                            print(f"Detected light theme from Pantheon: {pantheon_theme}")
+                except Exception as e:
+                    print(f"Pantheon theme detection failed: {e}")
+
+            # === LXDE/LXQt ===
+            if not is_dark_theme:
+                try:
+                    # Try LXQt first
+                    result = subprocess.run(['lxqt-config-appearance', '--help'],
+                                          capture_output=True, text=True, timeout=2)
+                    if result.returncode == 0:
+                        # Check LXQt theme
+                        config_file = os.path.expanduser('~/.config/lxqt/lxqt.conf')
+                        if os.path.exists(config_file):
+                            with open(config_file, 'r') as f:
+                                content = f.read().lower()
+                                if 'dark' in content or 'black' in content:
+                                    is_dark_theme = True
+                                    print(f"Detected dark theme from LXQt config")
+                except Exception as e:
+                    print(f"LXQt theme detection failed: {e}")
+
+            # Try LXDE
+            if not is_dark_theme:
+                try:
+                    config_file = os.path.expanduser('~/.config/lxsession/LXDE/desktop.conf')
+                    if os.path.exists(config_file):
+                        with open(config_file, 'r') as f:
+                            content = f.read().lower()
+                            if 'dark' in content or 'black' in content:
+                                is_dark_theme = True
+                                print(f"Detected dark theme from LXDE config")
+                except Exception as e:
+                    print(f"LXDE theme detection failed: {e}")
+
+            # === Window Managers ===
+
+            # i3/Sway
+            if not is_dark_theme and ('i3' in window_manager or 'sway' in window_manager):
+                try:
+                    # Check i3 config
+                    i3_config_paths = [
+                        os.path.expanduser('~/.config/i3/config'),
+                        os.path.expanduser('~/.i3/config'),
+                        os.path.expanduser('~/.config/sway/config')
+                    ]
+                    for config_path in i3_config_paths:
+                        if os.path.exists(config_path):
+                            with open(config_path, 'r') as f:
+                                content = f.read().lower()
+                                if 'dark' in content or '#1e1e1e' in content or '#2e2e2e' in content:
+                                    is_dark_theme = True
+                                    print(f"Detected dark theme from i3/Sway config")
+                                    break
+                except Exception as e:
+                    print(f"i3/Sway theme detection failed: {e}")
+
+            # Awesome WM
+            if not is_dark_theme and 'awesome' in window_manager:
+                try:
+                    awesome_config = os.path.expanduser('~/.config/awesome/rc.lua')
+                    if os.path.exists(awesome_config):
+                        with open(awesome_config, 'r') as f:
+                            content = f.read().lower()
+                            if 'dark' in content or 'beautiful.bg_normal = "#1e1e1e"' in content:
+                                is_dark_theme = True
+                                print(f"Detected dark theme from Awesome WM config")
+                except Exception as e:
+                    print(f"Awesome WM theme detection failed: {e}")
+
+            # === Environment Variables ===
+            if not is_dark_theme:
+                try:
+                    # Check various GTK theme environment variables
+                    gtk_vars = [
+                        'GTK_THEME',
+                        'GTK2_RC_FILES',
+                        'GTK_RC_FILES'
+                    ]
+
+                    for var in gtk_vars:
+                        env_value = os.environ.get(var, '').lower()
+                        if env_value and ('dark' in env_value or 'black' in env_value):
+                            is_dark_theme = True
+                            print(f"Detected dark theme from {var} env: {env_value}")
+                            break
+
+                    # Check Qt theme variables
+                    qt_vars = [
+                        'QT_STYLE_OVERRIDE',
+                        'QT_QPA_PLATFORMTHEME'
+                    ]
+
+                    for var in qt_vars:
+                        env_value = os.environ.get(var, '').lower()
+                        if env_value and ('dark' in env_value or 'black' in env_value):
+                            is_dark_theme = True
+                            print(f"Detected dark theme from {var} env: {env_value}")
+                            break
+
                 except Exception as e:
                     print(f"Environment variable check failed: {e}")
 
-            # Final fallback: check if common dark theme indicators exist
+            # === GTK Configuration Files ===
             if not is_dark_theme:
                 try:
-                    # Check if running under a known dark desktop theme
+                    # Check GTK 3 settings
+                    gtk3_settings = os.path.expanduser('~/.config/gtk-3.0/settings.ini')
+                    if os.path.exists(gtk3_settings):
+                        with open(gtk3_settings, 'r') as f:
+                            content = f.read().lower()
+                            if 'gtk-theme-name=.*dark' in content or 'gtk-application-prefer-dark-theme=true' in content:
+                                is_dark_theme = True
+                                print(f"Detected dark theme from GTK 3 settings")
+
+                    # Check GTK 2 settings
+                    gtk2_rc = os.path.expanduser('~/.gtkrc-2.0')
+                    if os.path.exists(gtk2_rc):
+                        with open(gtk2_rc, 'r') as f:
+                            content = f.read().lower()
+                            if 'dark' in content or 'black' in content:
+                                is_dark_theme = True
+                                print(f"Detected dark theme from GTK 2 settings")
+
+                except Exception as e:
+                    print(f"GTK config file check failed: {e}")
+
+            # === X11 Resources ===
+            if not is_dark_theme:
+                try:
+                    # Check .Xresources
+                    xresources_paths = [
+                        os.path.expanduser('~/.Xresources'),
+                        os.path.expanduser('~/.Xdefaults')
+                    ]
+
+                    for xres_path in xresources_paths:
+                        if os.path.exists(xres_path):
+                            with open(xres_path, 'r') as f:
+                                content = f.read().lower()
+                                if ('*background:' in content and '#1' in content) or 'dark' in content:
+                                    is_dark_theme = True
+                                    print(f"Detected dark theme from X11 resources")
+                                    break
+
+                except Exception as e:
+                    print(f"X11 resources check failed: {e}")
+
+            # === Final fallback checks ===
+            if not is_dark_theme:
+                try:
+                    # Check for common dark theme indicators in desktop session
                     dark_indicators = [
-                        # Check for dark theme in desktop session
+                        desktop_env,
+                        desktop_session,
                         os.environ.get('DESKTOP_SESSION', '').lower(),
-                        # Check for dark theme in current desktop
-                        os.environ.get('XDG_CURRENT_DESKTOP', '').lower()
+                        os.environ.get('GDMSESSION', '').lower()
                     ]
 
                     for indicator in dark_indicators:
-                        if indicator and ('dark' in indicator or 'night' in indicator):
+                        if indicator and ('dark' in indicator or 'night' in indicator or 'black' in indicator):
                             is_dark_theme = True
                             print(f"Detected dark theme from desktop indicator: {indicator}")
                             break
+
+                    # Check system time for auto dark mode (heuristic)
+                    if not is_dark_theme:
+                        import datetime
+                        current_hour = datetime.datetime.now().hour
+                        if current_hour < 6 or current_hour > 18:  # Between 6 PM and 6 AM
+                            # Only apply this heuristic if we couldn't detect theme otherwise
+                            print(f"No theme detected, applying time-based heuristic (evening/night)")
+                            # Don't actually set dark theme based on time - too unreliable
+                            # is_dark_theme = True
+
                 except Exception as e:
-                    print(f"Desktop indicator check failed: {e}")
+                    print(f"Final fallback check failed: {e}")
 
             print(f"Final theme detection result: {'Dark' if is_dark_theme else 'Light'} theme")
 
