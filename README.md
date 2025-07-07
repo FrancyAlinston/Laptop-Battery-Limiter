@@ -75,7 +75,7 @@ battery-limit reset     # Reset to 100%
 - Updates appear automatically in Ubuntu Software Updater
 - No manual checking required
 
-### Manual Installations  
+### Manual Installations
 - Click "Check for Updates" in system tray
 - Download new .deb package when available
 
@@ -97,7 +97,7 @@ battery-limit reset     # Reset to 100%
 
 This tool works with most ASUS laptops that support ACPI battery charge control, including:
 - ZenBook series
-- VivoBook series  
+- VivoBook series
 - ROG series
 - TUF Gaming series
 - And many others

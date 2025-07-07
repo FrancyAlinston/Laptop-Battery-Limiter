@@ -3,6 +3,8 @@
 asus-battery-limiter_*
 build/
 dist/
+*.tar.gz
+*.zip
 
 # Python
 __pycache__/
@@ -25,13 +27,54 @@ wheels/
 *.egg
 MANIFEST
 
-# Development files
+# Development files (never commit these to public repo)
 *-dev.*
 *-development.*
 *-temp.*
+*-tmp.*
 *.tmp
+*.temp
 *.bak
 *~
+*.draft
+*.work
+*.wip
+dev-*
+temp-*
+tmp-*
+draft-*
+work-*
+wip-*
+
+# Development documentation (internal use only)
+DEVELOPMENT_*.md
+INTERNAL_*.md
+TODO_*.md
+NOTES_*.md
+TEMP_*.md
+DEV_*.md
+*_INTERNAL.md
+*_DEV.md
+*_TODO.md
+*_NOTES.md
+
+# Development scripts (internal use only)
+*-dev.sh
+*-development.sh
+*-temp.sh
+*-tmp.sh
+dev-*.sh
+temp-*.sh
+tmp-*.sh
+development-*.sh
+internal-*.sh
+setup-dev*.sh
+test-*.sh
+debug-*.sh
+dev-file-manager.sh
+file-manager-*.sh
+*-manager.sh
+cleanup-*.sh
 
 # OS generated files
 .DS_Store

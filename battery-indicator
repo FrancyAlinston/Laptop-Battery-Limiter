@@ -315,31 +315,6 @@ class BatteryLimitIndicator:
                     subprocess.Popen(["gnome-terminal", "--", "sudo", "snap", "refresh", "asus-battery-limiter"])
 
         dialog.destroy()
-                            GObject.idle_add(self.show_update_dialog, latest_version, release_url, release_notes)
-                        else:
-                            # Up to date
-                            GObject.idle_add(self.show_notification,
-                                           "Up to Date",
-                                           f"You have the latest version ({self.current_version})")
-                    else:
-                        raise Exception("Failed to fetch release information")
-
-            except urllib.error.URLError as e:
-                GObject.idle_add(self.show_notification,
-                               "Update Check Failed",
-                               "No internet connection or GitHub unavailable")
-            except Exception as e:
-                GObject.idle_add(self.show_notification,
-                               "Update Check Failed",
-                               f"Error: {str(e)}")
-
-        # Show checking notification
-        self.show_notification("Checking for Updates", "Connecting to GitHub...")
-
-        # Run check in background thread
-        thread = threading.Thread(target=check_updates)
-        thread.daemon = True
-        thread.start()
 
     def compare_versions(self, version1, version2):
         """Compare two version strings. Returns True if version1 > version2"""
