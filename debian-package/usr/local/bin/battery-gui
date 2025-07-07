@@ -84,6 +84,10 @@ class BatteryControlGUI:
         # Version info for updates
         self.current_version = "2.0.0"
         self.github_repo = "FrancyAlinston/Laptop-Battery-Limiter"
+        self.release_channel = "stable"  # Can be "stable" or "beta"
+        
+        # Load settings
+        self.load_settings()
 
     def create_widgets(self):
         """Create all GUI widgets"""
@@ -230,6 +234,10 @@ class BatteryControlGUI:
         update_btn = ttk.Button(actions_frame, text="🔍 Check Updates",
                               command=self.check_for_updates)
         update_btn.pack(side='left', padx=5)
+
+        channel_btn = ttk.Button(actions_frame, text="🔄 Release Channel",
+                               command=self.show_channel_settings)
+        channel_btn.pack(side='left', padx=5)
 
         terminal_btn = ttk.Button(actions_frame, text="📟 Open Terminal CLI",
                                 command=self.open_terminal_cli)
@@ -392,28 +400,47 @@ class BatteryControlGUI:
         def check_updates():
             try:
                 # Update status
-                self.status_text.config(text="🔍 Checking for updates...")
+                channel_name = "Beta" if self.release_channel == "beta" else "Stable"
+                self.status_text.config(text=f"🔍 Checking for {channel_name} updates...")
 
-                # GitHub API URL for latest release
-                api_url = f"https://api.github.com/repos/{self.github_repo}/releases/latest"
+                # GitHub API URL with release channel support
+                if self.release_channel == "beta":
+                    # For beta, check all releases including pre-releases
+                    api_url = f"https://api.github.com/repos/{self.github_repo}/releases"
+                else:
+                    # For stable, check only latest stable release
+                    api_url = f"https://api.github.com/repos/{self.github_repo}/releases/latest"
 
                 # Make request to GitHub API
                 with urllib.request.urlopen(api_url, timeout=10) as response:
                     if response.getcode() == 200:
                         data = json.loads(response.read().decode())
-                        latest_version = data.get('tag_name', '').lstrip('v')
-                        release_url = data.get('html_url', '')
-                        release_notes = data.get('body', 'No release notes available.')
+                        
+                        if self.release_channel == "beta":
+                            # Find the latest release (including pre-releases)
+                            if isinstance(data, list) and len(data) > 0:
+                                latest_release = data[0]  # First is most recent
+                            else:
+                                raise Exception("No releases found")
+                        else:
+                            latest_release = data
+                        
+                        latest_version = latest_release.get('tag_name', '').lstrip('v')
+                        release_url = latest_release.get('html_url', '')
+                        release_notes = latest_release.get('body', 'No release notes available.')
+                        is_prerelease = latest_release.get('prerelease', False)
 
                         # Compare versions
                         if self.compare_versions(latest_version, self.current_version):
                             # New version available
-                            self.root.after(0, lambda: self.show_update_dialog(latest_version, release_url, release_notes))
+                            channel_info = " (Beta)" if is_prerelease else " (Stable)"
+                            self.root.after(0, lambda: self.show_update_dialog(latest_version + channel_info, release_url, release_notes))
                         else:
                             # Up to date
+                            channel_name = "Beta" if self.release_channel == "beta" else "Stable"
                             self.root.after(0, lambda: messagebox.showinfo(
                                 "Up to Date",
-                                f"You have the latest version ({self.current_version})"
+                                f"You have the latest {channel_name} version ({self.current_version})"
                             ))
                     else:
                         raise Exception("Failed to fetch release information")
@@ -520,6 +547,125 @@ class BatteryControlGUI:
         close_btn = ttk.Button(button_frame, text="Close", command=close_dialog)
         close_btn.pack(side='right', padx=5)
 
+    def show_channel_settings(self):
+        """Show release channel settings dialog"""
+        channel_window = tk.Toplevel(self.root)
+        channel_window.title("Release Channel Settings")
+        channel_window.geometry("400x300")
+        channel_window.configure(bg=self.bg_color)
+        channel_window.resizable(False, False)
+
+        # Make it modal
+        channel_window.transient(self.root)
+        channel_window.grab_set()
+
+        # Center the window
+        channel_window.geometry("+%d+%d" % (
+            self.root.winfo_rootx() + 50,
+            self.root.winfo_rooty() + 50
+        ))
+
+        main_frame = ttk.Frame(channel_window, style='Dark.TFrame')
+        main_frame.pack(fill='both', expand=True, padx=20, pady=20)
+
+        # Title
+        title_label = ttk.Label(main_frame, text="Release Channel Settings", style='Title.TLabel')
+        title_label.pack(pady=(0, 10))
+
+        # Description
+        desc_label = ttk.Label(main_frame, text="Choose which type of updates you want to receive:", style='Dark.TLabel')
+        desc_label.pack(pady=(0, 20))
+
+        # Channel selection
+        self.channel_var = tk.StringVar(value=self.release_channel)
+
+        # Stable option
+        stable_frame = ttk.Frame(main_frame, style='Card.TFrame')
+        stable_frame.pack(fill='x', pady=5, padx=10, ipady=10)
+
+        stable_radio = ttk.Radiobutton(stable_frame, text="Stable Channel", 
+                                     variable=self.channel_var, value="stable",
+                                     style='Card.TLabel')
+        stable_radio.pack(anchor='w', padx=10, pady=5)
+
+        stable_desc = ttk.Label(stable_frame, 
+                              text="• Stable, tested releases\n• Recommended for most users\n• Less frequent updates",
+                              style='Card.TLabel')
+        stable_desc.pack(anchor='w', padx=30, pady=(0, 5))
+
+        # Beta option
+        beta_frame = ttk.Frame(main_frame, style='Card.TFrame')
+        beta_frame.pack(fill='x', pady=5, padx=10, ipady=10)
+
+        beta_radio = ttk.Radiobutton(beta_frame, text="Beta Channel", 
+                                   variable=self.channel_var, value="beta",
+                                   style='Card.TLabel')
+        beta_radio.pack(anchor='w', padx=10, pady=5)
+
+        beta_desc = ttk.Label(beta_frame, 
+                            text="• Early access to new features\n• May contain bugs\n• More frequent updates",
+                            style='Card.TLabel')
+        beta_desc.pack(anchor='w', padx=30, pady=(0, 5))
+
+        # Current channel info
+        current_frame = ttk.Frame(main_frame, style='Dark.TFrame')
+        current_frame.pack(fill='x', pady=10)
+
+        current_label = ttk.Label(current_frame, 
+                                text=f"Current channel: {self.release_channel.title()}", 
+                                style='Dark.TLabel')
+        current_label.pack()
+
+        # Buttons
+        button_frame = ttk.Frame(main_frame, style='Dark.TFrame')
+        button_frame.pack(fill='x', pady=(20, 0))
+
+        def apply_settings():
+            new_channel = self.channel_var.get()
+            if new_channel != self.release_channel:
+                self.release_channel = new_channel
+                self.save_settings()
+                messagebox.showinfo("Channel Changed", 
+                                  f"Release channel changed to {new_channel.title()}")
+            channel_window.destroy()
+
+        def cancel_settings():
+            channel_window.destroy()
+
+        apply_btn = ttk.Button(button_frame, text="Apply", 
+                             command=apply_settings, style='Accent.TButton')
+        apply_btn.pack(side='left', padx=5)
+
+        cancel_btn = ttk.Button(button_frame, text="Cancel", command=cancel_settings)
+        cancel_btn.pack(side='right', padx=5)
+
+    def save_settings(self):
+        """Save settings to file"""
+        try:
+            import os
+            config_dir = os.path.expanduser("~/.config/universal-battery-limiter")
+            os.makedirs(config_dir, exist_ok=True)
+            
+            config_file = os.path.join(config_dir, "settings.conf")
+            with open(config_file, 'w') as f:
+                f.write(f"release_channel={self.release_channel}\n")
+        except Exception as e:
+            print(f"Failed to save settings: {e}")
+
+    def load_settings(self):
+        """Load settings from file"""
+        try:
+            import os
+            config_file = os.path.expanduser("~/.config/universal-battery-limiter/settings.conf")
+            if os.path.exists(config_file):
+                with open(config_file, 'r') as f:
+                    for line in f:
+                        if line.startswith("release_channel="):
+                            self.release_channel = line.split("=")[1].strip()
+        except Exception as e:
+            print(f"Failed to load settings: {e}")
+
+    # ...existing code...
 def main():
     root = tk.Tk()
     app = BatteryControlGUI(root)

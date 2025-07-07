@@ -37,6 +37,10 @@ class BatteryLimitIndicator:
         # Version info for updates
         self.current_version = "2.0.0"
         self.github_repo = "FrancyAlinston/Laptop-Battery-Limiter"
+        self.release_channel = "stable"  # Can be "stable" or "beta"
+
+        # Load settings
+        self.load_settings()
 
         # Update indicator
         self.update_indicator()
@@ -96,6 +100,11 @@ class BatteryLimitIndicator:
         update_item = Gtk.MenuItem(label="🔍 Check for Updates")
         update_item.connect("activate", self.check_for_updates)
         menu.append(update_item)
+
+        # Release channel settings
+        channel_item = Gtk.MenuItem(label="🔄 Release Channel")
+        channel_item.connect("activate", self.show_channel_settings)
+        menu.append(channel_item)
 
         # About
         about_item = Gtk.MenuItem(label="ℹ️ About")
@@ -191,26 +200,44 @@ class BatteryLimitIndicator:
                     GObject.idle_add(self.show_native_update_dialog, update_method)
                     return
 
-                # Fallback to GitHub API check
-                api_url = f"https://api.github.com/repos/{self.github_repo}/releases/latest"
+                # Fallback to GitHub API check with release channel support
+                if self.release_channel == "beta":
+                    # For beta, check all releases including pre-releases
+                    api_url = f"https://api.github.com/repos/{self.github_repo}/releases"
+                else:
+                    # For stable, check only latest stable release
+                    api_url = f"https://api.github.com/repos/{self.github_repo}/releases/latest"
 
                 # Make request to GitHub API
                 with urllib.request.urlopen(api_url, timeout=10) as response:
                     if response.getcode() == 200:
                         data = json.loads(response.read().decode())
-                        latest_version = data.get('tag_name', '').lstrip('v')
-                        release_url = data.get('html_url', '')
-                        release_notes = data.get('body', 'No release notes available.')
+                        
+                        if self.release_channel == "beta":
+                            # Find the latest release (including pre-releases)
+                            if isinstance(data, list) and len(data) > 0:
+                                latest_release = data[0]  # First is most recent
+                            else:
+                                raise Exception("No releases found")
+                        else:
+                            latest_release = data
+                        
+                        latest_version = latest_release.get('tag_name', '').lstrip('v')
+                        release_url = latest_release.get('html_url', '')
+                        release_notes = latest_release.get('body', 'No release notes available.')
+                        is_prerelease = latest_release.get('prerelease', False)
 
                         # Compare versions
                         if self.compare_versions(latest_version, self.current_version):
                             # New version available
-                            GObject.idle_add(self.show_update_dialog, latest_version, release_url, release_notes)
+                            channel_info = " (Beta)" if is_prerelease else " (Stable)"
+                            GObject.idle_add(self.show_update_dialog, latest_version + channel_info, release_url, release_notes)
                         else:
                             # Up to date
+                            channel_name = "Beta" if self.release_channel == "beta" else "Stable"
                             GObject.idle_add(self.show_notification,
                                            "Up to Date",
-                                           f"You have the latest version ({self.current_version})")
+                                           f"You have the latest {channel_name} version ({self.current_version})")
                     else:
                         raise Exception("Failed to fetch release information")
 
@@ -224,7 +251,8 @@ class BatteryLimitIndicator:
                                f"Error: {str(e)}")
 
         # Show checking notification
-        self.show_notification("Checking for Updates", "Checking package manager and GitHub...")
+        channel_name = "Beta" if self.release_channel == "beta" else "Stable"
+        self.show_notification("Checking for Updates", f"Checking {channel_name} channel...")
 
         # Run check in background thread
         thread = threading.Thread(target=check_updates)
@@ -354,7 +382,101 @@ class BatteryLimitIndicator:
 
         dialog.destroy()
 
-    def show_about(self, widget):
+    def show_channel_settings(self, widget):
+        """Show release channel settings dialog"""
+        dialog = Gtk.Dialog(title="Release Channel Settings", 
+                           parent=None, 
+                           flags=0)
+        dialog.add_buttons("Cancel", Gtk.ResponseType.CANCEL,
+                          "Apply", Gtk.ResponseType.OK)
+        
+        dialog.set_default_size(400, 200)
+        
+        content_area = dialog.get_content_area()
+        content_area.set_spacing(10)
+        content_area.set_margin_left(20)
+        content_area.set_margin_right(20)
+        content_area.set_margin_top(20)
+        content_area.set_margin_bottom(20)
+        
+        # Title
+        title_label = Gtk.Label()
+        title_label.set_markup("<b>Choose Release Channel</b>")
+        content_area.pack_start(title_label, False, False, 0)
+        
+        # Description
+        desc_label = Gtk.Label()
+        desc_label.set_text("Select which type of updates you want to receive:")
+        desc_label.set_line_wrap(True)
+        content_area.pack_start(desc_label, False, False, 0)
+        
+        # Radio buttons
+        stable_radio = Gtk.RadioButton.new_with_label_from_widget(None, "Stable")
+        stable_desc = Gtk.Label()
+        stable_desc.set_text("   • Stable, tested releases\n   • Recommended for most users")
+        stable_desc.set_halign(Gtk.Align.START)
+        
+        beta_radio = Gtk.RadioButton.new_with_label_from_widget(stable_radio, "Beta")
+        beta_desc = Gtk.Label()
+        beta_desc.set_text("   • Early access to new features\n   • May contain bugs")
+        beta_desc.set_halign(Gtk.Align.START)
+        
+        # Set current selection
+        if self.release_channel == "stable":
+            stable_radio.set_active(True)
+        else:
+            beta_radio.set_active(True)
+        
+        content_area.pack_start(stable_radio, False, False, 0)
+        content_area.pack_start(stable_desc, False, False, 0)
+        content_area.pack_start(beta_radio, False, False, 0)
+        content_area.pack_start(beta_desc, False, False, 0)
+        
+        # Current channel info
+        current_label = Gtk.Label()
+        current_label.set_markup(f"<i>Current channel: {self.release_channel.title()}</i>")
+        content_area.pack_start(current_label, False, False, 10)
+        
+        dialog.show_all()
+        
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            new_channel = "stable" if stable_radio.get_active() else "beta"
+            if new_channel != self.release_channel:
+                self.release_channel = new_channel
+                self.save_settings()
+                self.show_notification("Channel Changed", 
+                                     f"Release channel changed to {new_channel.title()}")
+        
+        dialog.destroy()
+
+    def save_settings(self):
+        """Save settings to file"""
+        try:
+            import os
+            config_dir = os.path.expanduser("~/.config/universal-battery-limiter")
+            os.makedirs(config_dir, exist_ok=True)
+            
+            config_file = os.path.join(config_dir, "settings.conf")
+            with open(config_file, 'w') as f:
+                f.write(f"release_channel={self.release_channel}\n")
+        except Exception as e:
+            print(f"Failed to save settings: {e}")
+
+    def load_settings(self):
+        """Load settings from file"""
+        try:
+            import os
+            config_file = os.path.expanduser("~/.config/universal-battery-limiter/settings.conf")
+            if os.path.exists(config_file):
+                with open(config_file, 'r') as f:
+                    for line in f:
+                        if line.startswith("release_channel="):
+                            self.release_channel = line.split("=")[1].strip()
+        except Exception as e:
+            print(f"Failed to load settings: {e}")
+
+    def about_dialog(self, widget):
         dialog = Gtk.AboutDialog()
         dialog.set_name("Universal Battery Limiter")
         dialog.set_version("2.0.0")
