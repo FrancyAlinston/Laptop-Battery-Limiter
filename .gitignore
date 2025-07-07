@@ -45,6 +45,11 @@ tmp-*
 draft-*
 work-*
 wip-*
+*BRANCHING*
+*_STRATEGY*
+*-strategy.*
+*-plan.*
+*-internal.*
 
 # Development documentation (internal use only)
 DEVELOPMENT_*.md
@@ -131,3 +136,4 @@ PUSH_INSTRUCTIONS.md
 DEVELOPMENT_NOTES.md
 TODO.md
 NOTES.md
+Battery-Limter.code-workspace
