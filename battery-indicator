@@ -18,44 +18,44 @@ class BatteryLimitIndicator:
     def __init__(self):
         # Initialize notification
         Notify.init("Battery Limiter")
-        
+
         # Create indicator
         self.indicator = AppIndicator3.Indicator.new(
             "battery-limiter",
             "battery",
             AppIndicator3.IndicatorCategory.HARDWARE
         )
-        
+
         self.indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
         self.indicator.set_menu(self.create_menu())
-        
+
         # Battery files
         self.threshold_file = "/sys/class/power_supply/BAT0/charge_control_end_threshold"
         self.capacity_file = "/sys/class/power_supply/BAT0/capacity"
         self.status_file = "/sys/class/power_supply/BAT0/status"
-        
+
         # Version info for updates
         self.current_version = "2.0.0"
         self.github_repo = "FrancyAlinston/Laptop-Battery-Limiter"
-        
+
         # Update indicator
         self.update_indicator()
-        
+
         # Start update thread
         self.start_update_thread()
 
     def create_menu(self):
         menu = Gtk.Menu()
-        
+
         # Battery status item
         self.status_item = Gtk.MenuItem()
         self.status_item.set_sensitive(False)
         menu.append(self.status_item)
-        
+
         # Separator
         separator = Gtk.SeparatorMenuItem()
         menu.append(separator)
-        
+
         # Quick presets
         presets = [
             ("🔋 60% (Storage)", 60),
@@ -64,49 +64,49 @@ class BatteryLimitIndicator:
             ("🔋 90% (Extended)", 90),
             ("🔋 100% (Full)", 100)
         ]
-        
+
         for label, value in presets:
             item = Gtk.MenuItem(label=label)
             item.connect("activate", self.set_limit, value)
             menu.append(item)
-        
+
         # Separator
         separator2 = Gtk.SeparatorMenuItem()
         menu.append(separator2)
-        
+
         # Advanced options
         advanced_item = Gtk.MenuItem(label="🔧 Advanced Settings")
         advanced_item.connect("activate", self.open_gui)
         menu.append(advanced_item)
-        
+
         cli_item = Gtk.MenuItem(label="📟 Open CLI")
         cli_item.connect("activate", self.open_cli)
         menu.append(cli_item)
-        
+
         # Separator
         separator3 = Gtk.SeparatorMenuItem()
         menu.append(separator3)
-        
+
         # Refresh
         refresh_item = Gtk.MenuItem(label="🔄 Refresh")
         refresh_item.connect("activate", self.refresh)
         menu.append(refresh_item)
-        
+
         # Check for updates
         update_item = Gtk.MenuItem(label="🔍 Check for Updates")
         update_item.connect("activate", self.check_for_updates)
         menu.append(update_item)
-        
+
         # About
         about_item = Gtk.MenuItem(label="ℹ️ About")
         about_item.connect("activate", self.show_about)
         menu.append(about_item)
-        
+
         # Exit
         exit_item = Gtk.MenuItem(label="❌ Exit")
         exit_item.connect("activate", self.quit)
         menu.append(exit_item)
-        
+
         menu.show_all()
         return menu
 
@@ -128,11 +128,11 @@ class BatteryLimitIndicator:
 
     def update_indicator(self):
         limit, level, status = self.get_battery_info()
-        
+
         # Update status item
         status_text = f"🔋 {level}% ({status}) | Limit: {limit}%"
         self.status_item.set_label(status_text)
-        
+
         # Update tooltip
         self.indicator.set_title(f"Battery: {level}% | Limit: {limit}%")
 
@@ -142,21 +142,21 @@ class BatteryLimitIndicator:
                 # Use pkexec for GUI authentication
                 cmd = f"pkexec bash -c 'echo {limit} > {self.threshold_file}'"
                 result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-                
+
                 if result.returncode == 0:
-                    GObject.idle_add(self.show_notification, 
-                                   "Battery Limit Set", 
+                    GObject.idle_add(self.show_notification,
+                                   "Battery Limit Set",
                                    f"Charging limit set to {limit}%")
                     GObject.idle_add(self.update_indicator)
                 else:
-                    GObject.idle_add(self.show_notification, 
-                                   "Error", 
+                    GObject.idle_add(self.show_notification,
+                                   "Error",
                                    "Failed to set battery limit")
             except Exception as e:
-                GObject.idle_add(self.show_notification, 
-                               "Error", 
+                GObject.idle_add(self.show_notification,
+                               "Error",
                                f"Failed to set battery limit: {str(e)}")
-        
+
         # Run in thread to avoid blocking UI
         thread = threading.Thread(target=run_command)
         thread.daemon = True
@@ -185,15 +185,15 @@ class BatteryLimitIndicator:
             try:
                 # First, check if we're installed via package manager
                 update_available, update_method = self.check_native_updates()
-                
+
                 if update_available:
                     # Native update available
                     GObject.idle_add(self.show_native_update_dialog, update_method)
                     return
-                
+
                 # Fallback to GitHub API check
                 api_url = f"https://api.github.com/repos/{self.github_repo}/releases/latest"
-                
+
                 # Make request to GitHub API
                 with urllib.request.urlopen(api_url, timeout=10) as response:
                     if response.getcode() == 200:
@@ -201,36 +201,36 @@ class BatteryLimitIndicator:
                         latest_version = data.get('tag_name', '').lstrip('v')
                         release_url = data.get('html_url', '')
                         release_notes = data.get('body', 'No release notes available.')
-                        
+
                         # Compare versions
                         if self.compare_versions(latest_version, self.current_version):
                             # New version available
                             GObject.idle_add(self.show_update_dialog, latest_version, release_url, release_notes)
                         else:
                             # Up to date
-                            GObject.idle_add(self.show_notification, 
-                                           "Up to Date", 
+                            GObject.idle_add(self.show_notification,
+                                           "Up to Date",
                                            f"You have the latest version ({self.current_version})")
                     else:
                         raise Exception("Failed to fetch release information")
-                        
+
             except urllib.error.URLError as e:
-                GObject.idle_add(self.show_notification, 
-                               "Update Check Failed", 
+                GObject.idle_add(self.show_notification,
+                               "Update Check Failed",
                                "No internet connection or GitHub unavailable")
             except Exception as e:
-                GObject.idle_add(self.show_notification, 
-                               "Update Check Failed", 
+                GObject.idle_add(self.show_notification,
+                               "Update Check Failed",
                                f"Error: {str(e)}")
-        
+
         # Show checking notification
         self.show_notification("Checking for Updates", "Checking package manager and GitHub...")
-        
+
         # Run check in background thread
         thread = threading.Thread(target=check_updates)
         thread.daemon = True
         thread.start()
-    
+
     def check_native_updates(self):
         """Check for updates via native package managers"""
         try:
@@ -239,7 +239,7 @@ class BatteryLimitIndicator:
                 ["dpkg", "-l", "asus-battery-limiter"],
                 capture_output=True, text=True, timeout=5
             )
-            
+
             if result.returncode == 0:
                 # Package is installed via APT
                 # Check for updates
@@ -247,31 +247,31 @@ class BatteryLimitIndicator:
                     ["apt", "list", "--upgradable", "asus-battery-limiter"],
                     capture_output=True, text=True, timeout=10
                 )
-                
+
                 if "asus-battery-limiter" in apt_result.stdout and "upgradable" in apt_result.stdout:
                     return True, "apt"
-            
+
             # Check if installed via Snap
             snap_result = subprocess.run(
                 ["snap", "list", "asus-battery-limiter"],
                 capture_output=True, text=True, timeout=5
             )
-            
+
             if snap_result.returncode == 0:
                 # Check for snap updates
                 snap_refresh = subprocess.run(
                     ["snap", "refresh", "--list"],
                     capture_output=True, text=True, timeout=10
                 )
-                
+
                 if "asus-battery-limiter" in snap_refresh.stdout:
                     return True, "snap"
-            
+
             return False, None
-            
+
         except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError):
             return False, None
-    
+
     def show_native_update_dialog(self, update_method):
         """Show native update available dialog"""
         if update_method == "apt":
@@ -292,7 +292,7 @@ class BatteryLimitIndicator:
             command = ["snap-store"]
         else:
             return
-        
+
         dialog = Gtk.MessageDialog(
             parent=None,
             flags=0,
@@ -300,9 +300,9 @@ class BatteryLimitIndicator:
             buttons=Gtk.ButtonsType.YES_NO,
             text=title
         )
-        
+
         dialog.format_secondary_text(message)
-        
+
         response = dialog.run()
         if response == Gtk.ResponseType.YES:
             try:
@@ -313,29 +313,29 @@ class BatteryLimitIndicator:
                     subprocess.Popen(["gnome-terminal", "--", "sudo", "apt", "update", "&&", "sudo", "apt", "upgrade", "asus-battery-limiter"])
                 elif update_method == "snap":
                     subprocess.Popen(["gnome-terminal", "--", "sudo", "snap", "refresh", "asus-battery-limiter"])
-        
+
         dialog.destroy()
                             GObject.idle_add(self.show_update_dialog, latest_version, release_url, release_notes)
                         else:
                             # Up to date
-                            GObject.idle_add(self.show_notification, 
-                                           "Up to Date", 
+                            GObject.idle_add(self.show_notification,
+                                           "Up to Date",
                                            f"You have the latest version ({self.current_version})")
                     else:
                         raise Exception("Failed to fetch release information")
-                        
+
             except urllib.error.URLError as e:
-                GObject.idle_add(self.show_notification, 
-                               "Update Check Failed", 
+                GObject.idle_add(self.show_notification,
+                               "Update Check Failed",
                                "No internet connection or GitHub unavailable")
             except Exception as e:
-                GObject.idle_add(self.show_notification, 
-                               "Update Check Failed", 
+                GObject.idle_add(self.show_notification,
+                               "Update Check Failed",
                                f"Error: {str(e)}")
-        
+
         # Show checking notification
         self.show_notification("Checking for Updates", "Connecting to GitHub...")
-        
+
         # Run check in background thread
         thread = threading.Thread(target=check_updates)
         thread.daemon = True
@@ -346,12 +346,12 @@ class BatteryLimitIndicator:
         try:
             v1_parts = [int(x) for x in version1.split('.')]
             v2_parts = [int(x) for x in version2.split('.')]
-            
+
             # Pad shorter version with zeros
             max_len = max(len(v1_parts), len(v2_parts))
             v1_parts.extend([0] * (max_len - len(v1_parts)))
             v2_parts.extend([0] * (max_len - len(v2_parts)))
-            
+
             return v1_parts > v2_parts
         except:
             return False
@@ -365,18 +365,18 @@ class BatteryLimitIndicator:
             buttons=Gtk.ButtonsType.YES_NO,
             text="Update Available!"
         )
-        
+
         dialog.format_secondary_text(
             f"A new version ({latest_version}) is available!\n"
             f"Current version: {self.current_version}\n\n"
             f"Release Notes:\n{release_notes[:200]}{'...' if len(release_notes) > 200 else ''}\n\n"
             f"Would you like to open the download page?"
         )
-        
+
         response = dialog.run()
         if response == Gtk.ResponseType.YES:
             subprocess.Popen(["xdg-open", release_url])
-        
+
         dialog.destroy()
 
     def show_about(self, widget):
@@ -395,7 +395,7 @@ class BatteryLimitIndicator:
             while True:
                 time.sleep(30)  # Update every 30 seconds
                 GObject.idle_add(self.update_indicator)
-        
+
         thread = threading.Thread(target=update_loop)
         thread.daemon = True
         thread.start()

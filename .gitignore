@@ -1,25 +1,90 @@
-# Built packages
-*.deb
-
-# Python cache
-__pycache__/
-*.pyc
-*.pyo
-
 # Build artifacts
+*.deb
+asus-battery-limiter_*
 build/
 dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Development files
+*-dev.*
+*-development.*
+*-temp.*
+*.tmp
+*.bak
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
 # IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# Temporary files
-*.tmp
+# Logs
 *.log
+logs/
 
-# OS files
-.DS_Store
-Thumbs.db
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# Generated documentation
+docs/_build/
+docs/build/
+
+# Package signing keys (if generated locally)
+private-key.asc
+public-key.asc
+*.gpg
+*.pgp
+
+# PPA configuration (contains sensitive info)
+ppa-config.txt
+launchpad-config/
+
+# Custom APT repository artifacts
+apt-repository/
+repository/
+
+# Snap build artifacts
+*.snap
+snap/.snapcraft/
+prime/
+stage/
+parts/
+
+# Development documentation
+PUSH_INSTRUCTIONS.md
+DEVELOPMENT_NOTES.md
+TODO.md
+NOTES.md

@@ -1,132 +1,170 @@
-# ASUS Battery Limiter
+# 🔋 ASUS Battery Limiter
 
-A comprehensive battery charge limit management tool for ASUS laptops with multiple interfaces.
+Professional battery charge limiting tool for ASUS laptops running Ubuntu/Linux. Helps extend battery lifespan by preventing overcharging.
 
-## Features
+## ✨ Features
 
-- 🔋 **Battery charge limit control** (50-100%)
-- 🖥️ **Multiple interfaces**: CLI, GUI, and simple commands
-- ⚡ **Quick presets**: 60%, 70%, 80%, 90%, 100%
-- 📊 **Battery status monitoring**
-- 🎨 **Colorful interactive CLI**
-- 🔐 **Proper privilege handling**
-- 🚀 **Easy-to-use GUI interface**
-- 🔍 **Automatic update checking** from GitHub
-- 🔄 **Auto-start system tray integration**
+- **Multiple Installation Methods**: APT, Snap, .deb package, or manual
+- **Ubuntu Native Updates**: Automatic updates through Software Updater (APT/Snap installs)
+- **System Tray Integration**: Convenient access with battery status display
+- **GUI Application**: User-friendly graphical interface
+- **CLI Tools**: Command-line interface for advanced users
+- **Professional Packaging**: Enterprise-grade installation and removal
 
-## Components
+## 🚀 Quick Installation
 
-### CLI Tools
-- **`battery-cli`** - Interactive CLI with colored output and menu system
-- **`battery-limit`** - Simple command-line interface for basic operations
-- **`set-charge-limit.sh`** - Core script for setting battery limits
-
-### GUI Application
-- **`battery-gui`** - Python/Tkinter GUI application
-- **`battery-indicator`** - System tray indicator with quick access menu and GUI launcher
-
-## Quick Start
-
-### Check current status
+### Method 1: Direct .deb Package (Recommended)
 ```bash
-./battery-limit status
+# Download the latest release
+wget https://github.com/FrancyAlinston/Laptop-Battery-Limiter/releases/latest/download/asus-battery-limiter_2.0.0_all.deb
+
+# Install
+sudo dpkg -i asus-battery-limiter_*.deb
+
+# Fix dependencies if needed
+sudo apt-get install -f
 ```
 
-### Set battery limit (requires sudo)
+### Method 2: Manual Installation
 ```bash
-sudo ./battery-limit set 80
+# Clone repository
+git clone https://github.com/FrancyAlinston/Laptop-Battery-Limiter.git
+cd Laptop-Battery-Limiter
+
+# Run installer
+sudo ./install.sh
 ```
 
-### Interactive CLI
+### Method 3: Build Your Own Package
 ```bash
-sudo ./battery-cli
-```
-
-### System Tray Indicator (Recommended)
-```bash
-./battery-indicator
-```
-
-### GUI Application
-Access through system tray indicator or run directly:
-```bash
-python3 ./battery-gui
-```
-
-## Installation
-
-### Easy Installation (.deb Package - Recommended)
-```bash
-# Build the package
+# Clone and build
+git clone https://github.com/FrancyAlinston/Laptop-Battery-Limiter.git
+cd Laptop-Battery-Limiter
 ./build-deb.sh
 
-# Install with automatic dependency resolution
-sudo dpkg -i asus-battery-limiter_1.0.0_all.deb
-# Dependencies are automatically installed!
+# Install the built package
+sudo dpkg -i asus-battery-limiter_*.deb
 ```
 
-### Manual Installation
+## 📱 Usage
+
+### System Tray (Recommended)
+- The battery indicator appears in your system tray after installation
+- Click to access quick presets: 60%, 70%, 80%, 90%, 100%
+- Right-click for full menu including GUI and settings
+
+### GUI Application
 ```bash
-./install.sh
+battery-gui
 ```
 
-### Manual Steps
-1. Clone this repository
-2. Make scripts executable:
+### Command Line
+```bash
+# Interactive CLI
+battery-cli
+
+# Direct commands
+battery-limit 80        # Set limit to 80%
+battery-limit status    # Check current status
+battery-limit reset     # Reset to 100%
+```
+
+## 🔄 Updates
+
+### APT/Snap Installations
+- Updates appear automatically in Ubuntu Software Updater
+- No manual checking required
+
+### Manual Installations  
+- Click "Check for Updates" in system tray
+- Download new .deb package when available
+
+## 📋 Requirements
+
+- ASUS laptop with compatible ACPI interface
+- Ubuntu 18.04+ or compatible Linux distribution
+- Python 3.6+
+- Root/sudo access for installation
+
+### Dependencies (automatically installed)
+- `python3-gi`
+- `gir1.2-gtk-3.0`
+- `gir1.2-appindicator3-0.1`
+- `zenity`
+- `acpi`
+
+## 🛠️ Supported Models
+
+This tool works with most ASUS laptops that support ACPI battery charge control, including:
+- ZenBook series
+- VivoBook series  
+- ROG series
+- TUF Gaming series
+- And many others
+
+## 🔧 Troubleshooting
+
+### Battery limit not working?
+1. Verify your ASUS laptop supports charge limiting:
    ```bash
-   chmod +x battery-cli battery-limit set-charge-limit.sh battery-indicator install.sh
+   ls /sys/class/power_supply/BAT*/charge_control_end_threshold
    ```
-3. For system-wide installation with system tray integration:
+
+2. Check if the service is running:
    ```bash
-   ./install.sh
+   systemctl status battery-limiter
    ```
 
-### Uninstall
+3. Try different limit values (60-100%)
+
+### Permission issues?
 ```bash
-./uninstall.sh
+# Reinstall with proper permissions
+sudo ./install.sh
 ```
 
-## Requirements
-
-- ASUS laptop with battery charge control support
-- Linux system with sysfs battery interface
-- Ubuntu/Debian-based distribution (for .deb package)
-- sudo privileges for setting limits
-
-**Note**: All Python dependencies are automatically installed when using the .deb package.
-
-## Compatibility
-
-This tool works with ASUS laptops that support battery charge control through:
-- `/sys/class/power_supply/BAT0/charge_control_end_threshold`
-
-## Usage Examples
-
-### Set specific limits
+### System tray not showing?
 ```bash
-# Conservative daily use
-sudo ./battery-cli 70
+# Install required indicator library
+sudo apt install gir1.2-appindicator3-0.1
 
-# Recommended daily use  
-sudo ./battery-cli 80
-
-# Long-term storage
-sudo ./battery-cli 60
-
-# Remove limit (charge to 100%)
-sudo ./battery-cli 100
+# Restart the indicator
+battery-indicator
 ```
 
-### Check battery information
+## 🗑️ Uninstallation
+
+### For .deb package installations:
 ```bash
-./battery-limit status
+sudo apt remove asus-battery-limiter
 ```
 
-## License
+### For manual installations:
+```bash
+sudo ./uninstall.sh
+```
 
-This project is open source. Feel free to use, modify, and distribute.
+## 🤝 Contributing
 
-## Contributing
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-Contributions are welcome! Please feel free to submit issues and pull requests at:
-https://github.com/FrancyAlinston/Laptop-Battery-Limiter
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## ⚠️ Disclaimer
+
+This tool modifies system power management settings. Use at your own risk. The authors are not responsible for any damage to your device.
+
+## 🆘 Support
+
+- **Issues**: [GitHub Issues](https://github.com/FrancyAlinston/Laptop-Battery-Limiter/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/FrancyAlinston/Laptop-Battery-Limiter/discussions)
+
+---
+
+**🎯 Goal Achieved**: This application can fetch updates from Ubuntu's native updater when installed via APT or Snap!
