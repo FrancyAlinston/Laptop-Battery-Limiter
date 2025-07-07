@@ -27,6 +27,20 @@ wheels/
 *.egg
 MANIFEST
 
+# Animated icons build artifacts
+icons/gif/
+icons/png_frames/
+icons/generated/
+*.gif
+*.png
+*.ico
+*.icns
+
+# SVG optimization artifacts
+icons/optimized/
+icons/temp/
+icons/backup/
+
 # Development files (never commit these to public repo)
 *-dev.*
 *-development.*
@@ -75,6 +89,13 @@ dev-file-manager.sh
 file-manager-*.sh
 *-manager.sh
 cleanup-*.sh
+
+# Animation testing and development files
+test-animations.py
+animation-test-*.py
+icon-test-*.py
+demo-test-*.py
+animation-debug-*.py
 
 # OS generated files
 .DS_Store
@@ -134,3 +155,192 @@ PUSH_INSTRUCTIONS.md
 DEVELOPMENT_NOTES.md
 TODO.md
 NOTES.md
+
+# Animation system documentation (keep public docs)
+# Note: ANIMATED-ICONS.md and ANIMATED-ICONS-COMPLETE.md are kept
+# These are important for users and should be tracked
+
+# Browser cache and temporary files
+.cache/
+cache/
+tmp/
+temp/
+
+# System tray test files
+tray-test-*.py
+indicator-test-*.py
+systray-debug-*.py
+
+# Package upload artifacts
+upload-*.log
+publish-*.log
+release-*.log
+
+# Local configuration overrides
+config.local.json
+settings.local.json
+local-config.*
+
+# Temporary HTML files for testing
+test-demo*.html
+demo-test*.html
+animation-preview*.html
+
+# Backup files from editing
+*.orig
+*.backup
+*~backup
+*.bak.*
+
+# Version control artifacts
+.git-rewrite/
+.git-credentials
+.gitconfig.local
+
+# IDE and editor temporary files
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+*.code-workspace.backup
+
+# System files
+.fuse_hidden*
+.directory
+.Trash-*
+nohup.out
+
+# Runtime files
+*.pid
+*.lock
+*.socket
+
+# Test coverage and profiling
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.prof
+
+# Documentation build files
+site/
+_site/
+.jekyll-cache/
+.jekyll-metadata
+.bundle/
+vendor/
+
+# Temporary animation files
+animation-temp/
+temp-icons/
+icon-cache/
+svg-cache/
+
+# macOS specific files
+.AppleDouble
+.LSOverride
+
+# Windows specific files
+desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Linux specific files
+*~
+.nfs*
+
+# Compressed files (unless specifically needed)
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+*.db
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/

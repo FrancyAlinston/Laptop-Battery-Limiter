@@ -7,9 +7,32 @@ Professional battery charge limiting tool for all compatible laptops running Ubu
 - **Multiple Installation Methods**: APT, Snap, .deb package, or manual
 - **Ubuntu Native Updates**: Automatic updates through Software Updater (APT/Snap installs)
 - **System Tray Integration**: Convenient access with battery status display
+- **Beautiful Animated Icons**: Professional animated system tray icons that respond to battery state
 - **GUI Application**: User-friendly graphical interface
 - **CLI Tools**: Command-line interface for advanced users
 - **Professional Packaging**: Enterprise-grade installation and removal
+
+## 🎨 Enhanced Animated Icons
+
+The Universal Battery Limiter features beautiful, professional animated system tray icons inspired by premium icon sets:
+
+### Animation States
+- **⚡ Charging**: Energy waves, sparkling particles, and pulsing lightning bolt
+- **🔋 Normal**: Gentle breathing animation with percentage display
+- **⚠️ Low Battery**: Urgent blinking animation with warning indicators
+- **✅ Limit Reached**: Success sparkles with checkmark and gentle glow
+- **🔌 Disconnected**: Fading discharge animation with floating particles
+
+### Demo
+```bash
+# View animations in browser
+firefox animated-icons-demo.html
+
+# Test animation system
+python3 demo-animations.py
+```
+
+See [ANIMATED-ICONS.md](ANIMATED-ICONS.md) for detailed documentation.
 
 ## 🚀 Quick Installation
 

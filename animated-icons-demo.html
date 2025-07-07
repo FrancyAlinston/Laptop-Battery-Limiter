@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Battery Limiter - Enhanced Animated Icons</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin-bottom: 40px;
+        }
+
+        .icons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .icon-card {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .icon-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .icon-container {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .icon-container svg {
+            width: 48px;
+            height: 48px;
+        }
+
+        .icon-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .icon-description {
+            font-size: 0.95em;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        .features {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .features h2 {
+            margin-top: 0;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+        }
+
+        .features ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .features li {
+            padding: 8px 0;
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .features li:before {
+            content: "✨";
+            position: absolute;
+            left: 0;
+            top: 8px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            opacity: 0.8;
+        }
+
+        .demo-note {
+            background: rgba(52, 152, 219, 0.3);
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔋 Universal Battery Limiter</h1>
+        <p class="subtitle">Enhanced Animated System Tray Icons</p>
+
+        <div class="demo-note">
+            <strong>Note:</strong> These are the beautiful animated icons inspired by Flaticon that now power your system tray experience. Each animation responds to your battery's current state with smooth, professional transitions.
+        </div>
+
+        <div class="icons-grid">
+            <div class="icon-card">
+                <div class="icon-container">
+                    <object data="icons/animated/advanced-charging.svg" type="image/svg+xml"></object>
+                </div>
+                <div class="icon-title">⚡ Charging</div>
+                <div class="icon-description">
+                    Smooth charging animation with energy waves, sparkling particles, and a pulsing lightning bolt. Shows when your battery is actively charging.
+                </div>
+            </div>
+
+            <div class="icon-card">
+                <div class="icon-container">
+                    <object data="icons/animated/advanced-low-battery.svg" type="image/svg+xml"></object>
+                </div>
+                <div class="icon-title">⚠️ Low Battery</div>
+                <div class="icon-description">
+                    Urgent blinking animation with warning indicators and danger particles. Alerts you when battery level is critically low (≤15%).
+                </div>
+            </div>
+
+            <div class="icon-card">
+                <div class="icon-container">
+                    <object data="icons/animated/advanced-limit-reached.svg" type="image/svg+xml"></object>
+                </div>
+                <div class="icon-title">✅ Limit Reached</div>
+                <div class="icon-description">
+                    Celebration animation with success sparkles, checkmark, and gentle glow. Indicates your battery has reached the set charge limit.
+                </div>
+            </div>
+
+            <div class="icon-card">
+                <div class="icon-container">
+                    <object data="icons/animated/advanced-disconnected.svg" type="image/svg+xml"></object>
+                </div>
+                <div class="icon-title">🔌 Disconnected</div>
+                <div class="icon-description">
+                    Fading discharge animation with floating energy particles and power-off symbol. Shows when charger is disconnected or in standby.
+                </div>
+            </div>
+
+            <div class="icon-card">
+                <div class="icon-container">
+                    <object data="icons/animated/advanced-normal.svg" type="image/svg+xml"></object>
+                </div>
+                <div class="icon-title">🔋 Normal</div>
+                <div class="icon-description">
+                    Gentle breathing animation with subtle energy dots and percentage display. Standard state for normal battery operation.
+                </div>
+            </div>
+        </div>
+
+        <div class="features">
+            <h2>🎨 Animation Features</h2>
+            <ul>
+                <li>Smooth SVG animations with professional gradients and effects</li>
+                <li>Automatic state detection based on battery level and charging status</li>
+                <li>Fallback compatibility for all system tray implementations</li>
+                <li>Optimized for low CPU usage and battery efficiency</li>
+                <li>Beautiful color schemes that adapt to different themes</li>
+                <li>Particle effects and energy waves for visual appeal</li>
+                <li>Responsive animations that scale across different screen DPIs</li>
+                <li>SVG-to-PNG conversion for maximum compatibility</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p>🚀 Universal Battery Limiter v2.1.0 - Professional Battery Management</p>
+            <p>Built with modern web technologies and beautiful animations</p>
+        </div>
+    </div>
+</body>
+</html>
