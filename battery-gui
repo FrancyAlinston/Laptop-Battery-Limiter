@@ -19,6 +19,8 @@ class BatteryControlGUI:
         self.create_widgets()
         self.update_battery_info()
         self.start_auto_refresh()
+        # Start theme monitoring
+        self.root.after(10000, self.check_theme_change)
 
     def setup_window(self):
         """Configure the main window"""
@@ -26,47 +28,361 @@ class BatteryControlGUI:
         self.root.geometry("450x600")
         self.root.resizable(False, False)
 
-        # Dark theme colors
-        self.bg_color = "#2b2b2b"
-        self.card_color = "#3c3c3c"
-        self.accent_color = "#4CAF50"
-        self.text_color = "#ffffff"
-        self.secondary_text = "#b0b0b0"
+        # Detect OS theme
+        self.detect_os_theme()
 
         self.root.configure(bg=self.bg_color)
 
         # Configure styles
         self.setup_styles()
 
+    def detect_os_theme(self):
+        """Detect OS theme (dark/light mode) and set colors accordingly"""
+        try:
+            import subprocess
+
+            # Default to light theme
+            is_dark_theme = False
+
+            # Try different methods to detect theme based on desktop environment
+            try:
+                # GNOME/Ubuntu detection - Check GTK theme first
+                result = subprocess.run(['gsettings', 'get', 'org.gnome.desktop.interface', 'gtk-theme'],
+                                      capture_output=True, text=True, timeout=2)
+                if result.returncode == 0:
+                    theme_name = result.stdout.strip().strip("'\"").lower()
+                    if 'dark' in theme_name or 'black' in theme_name:
+                        is_dark_theme = True
+                        print(f"Detected dark theme from GTK theme: {theme_name}")
+                    else:
+                        print(f"Detected light theme from GTK theme: {theme_name}")
+            except Exception as e:
+                print(f"GTK theme detection failed: {e}")
+
+            # If not detected yet, try color-scheme method (newer GNOME)
+            if not is_dark_theme:
+                try:
+                    result = subprocess.run(['gsettings', 'get', 'org.gnome.desktop.interface', 'color-scheme'],
+                                          capture_output=True, text=True, timeout=2)
+                    if result.returncode == 0:
+                        color_scheme = result.stdout.strip().strip("'\"").lower()
+                        if 'dark' in color_scheme or 'prefer-dark' in color_scheme:
+                            is_dark_theme = True
+                            print(f"Detected dark theme from color-scheme: {color_scheme}")
+                except Exception as e:
+                    print(f"Color-scheme detection failed: {e}")
+
+            # If still not detected, try KDE
+            if not is_dark_theme:
+                try:
+                    result = subprocess.run(['kreadconfig5', '--group', 'General', '--key', 'ColorScheme'],
+                                          capture_output=True, text=True, timeout=2)
+                    if result.returncode == 0:
+                        kde_scheme = result.stdout.strip().lower()
+                        if 'dark' in kde_scheme or 'breeze dark' in kde_scheme:
+                            is_dark_theme = True
+                            print(f"Detected dark theme from KDE: {kde_scheme}")
+                except Exception as e:
+                    print(f"KDE theme detection failed: {e}")
+
+            # If still not detected, try additional desktop environments
+            if not is_dark_theme:
+                try:
+                    # Try XFCE
+                    result = subprocess.run(['xfconf-query', '-c', 'xsettings', '-p', '/Net/ThemeName'], 
+                                          capture_output=True, text=True, timeout=2)
+                    if result.returncode == 0:
+                        xfce_theme = result.stdout.strip().lower()
+                        if 'dark' in xfce_theme or 'black' in xfce_theme:
+                            is_dark_theme = True
+                            print(f"Detected dark theme from XFCE: {xfce_theme}")
+                except Exception as e:
+                    print(f"XFCE theme detection failed: {e}")
+                    
+                try:
+                    # Try MATE
+                    result = subprocess.run(['gsettings', 'get', 'org.mate.interface', 'gtk-theme'], 
+                                          capture_output=True, text=True, timeout=2)
+                    if result.returncode == 0:
+                        mate_theme = result.stdout.strip().strip("'\"").lower()
+                        if 'dark' in mate_theme or 'black' in mate_theme:
+                            is_dark_theme = True
+                            print(f"Detected dark theme from MATE: {mate_theme}")
+                except Exception as e:
+                    print(f"MATE theme detection failed: {e}")
+                    
+                try:
+                    # Try Cinnamon
+                    result = subprocess.run(['gsettings', 'get', 'org.cinnamon.desktop.interface', 'gtk-theme'], 
+                                          capture_output=True, text=True, timeout=2)
+                    if result.returncode == 0:
+                        cinnamon_theme = result.stdout.strip().strip("'\"").lower()
+                        if 'dark' in cinnamon_theme or 'black' in cinnamon_theme:
+                            is_dark_theme = True
+                            print(f"Detected dark theme from Cinnamon: {cinnamon_theme}")
+                except Exception as e:
+                    print(f"Cinnamon theme detection failed: {e}")
+
+            # Check environment variables
+            if not is_dark_theme:
+                try:
+                    # Check GTK_THEME environment variable
+                    gtk_theme = os.environ.get('GTK_THEME', '').lower()
+                    if gtk_theme and 'dark' in gtk_theme:
+                        is_dark_theme = True
+                        print(f"Detected dark theme from GTK_THEME env: {gtk_theme}")
+
+                    # Check XDG_CURRENT_DESKTOP for additional hints
+                    desktop = os.environ.get('XDG_CURRENT_DESKTOP', '').lower()
+                    session = os.environ.get('XDG_SESSION_DESKTOP', '').lower()
+                    print(f"Desktop environment: {desktop}, Session: {session}")
+                except Exception as e:
+                    print(f"Environment variable check failed: {e}")
+
+            # Final fallback: check if common dark theme indicators exist
+            if not is_dark_theme:
+                try:
+                    # Check if running under a known dark desktop theme
+                    dark_indicators = [
+                        # Check for dark theme in desktop session
+                        os.environ.get('DESKTOP_SESSION', '').lower(),
+                        # Check for dark theme in current desktop
+                        os.environ.get('XDG_CURRENT_DESKTOP', '').lower()
+                    ]
+
+                    for indicator in dark_indicators:
+                        if indicator and ('dark' in indicator or 'night' in indicator):
+                            is_dark_theme = True
+                            print(f"Detected dark theme from desktop indicator: {indicator}")
+                            break
+                except Exception as e:
+                    print(f"Desktop indicator check failed: {e}")
+
+            print(f"Final theme detection result: {'Dark' if is_dark_theme else 'Light'} theme")
+
+            # Set theme colors
+            if is_dark_theme:
+                # Dark theme colors - improved palette
+                self.bg_color = "#2e3440"          # Nord dark background
+                self.card_color = "#3b4252"        # Nord slightly lighter
+                self.accent_color = "#88c0d0"      # Nord accent blue
+                self.text_color = "#eceff4"        # Nord light text
+                self.secondary_text = "#d8dee9"    # Nord secondary text
+                self.button_bg = "#5e81ac"         # Nord button blue
+                self.button_fg = "#eceff4"         # Nord button text
+                self.entry_bg = "#434c5e"          # Nord input background
+                self.entry_fg = "#eceff4"          # Nord input text
+                self.success_color = "#a3be8c"     # Nord green
+                self.warning_color = "#ebcb8b"     # Nord yellow
+                self.error_color = "#bf616a"       # Nord red
+                self.border_color = "#4c566a"      # Nord border
+            else:
+                # Light theme colors - improved palette
+                self.bg_color = "#fafafa"          # Light grey background
+                self.card_color = "#ffffff"        # Pure white cards
+                self.accent_color = "#1976d2"      # Material blue
+                self.text_color = "#212121"        # Dark text
+                self.secondary_text = "#757575"    # Grey text
+                self.button_bg = "#1976d2"         # Material blue button
+                self.button_fg = "#ffffff"         # White button text
+                self.entry_bg = "#ffffff"          # White input background
+                self.entry_fg = "#212121"          # Dark input text
+                self.success_color = "#388e3c"     # Material green
+                self.warning_color = "#f57c00"     # Material orange
+                self.error_color = "#d32f2f"       # Material red
+                self.border_color = "#e0e0e0"      # Light grey border
+
+            self.is_dark_theme = is_dark_theme
+
+        except Exception as e:
+            # Fallback to light theme if detection fails
+            self.bg_color = "#fafafa"
+            self.card_color = "#ffffff"
+            self.accent_color = "#1976d2"
+            self.text_color = "#212121"
+            self.secondary_text = "#757575"
+            self.button_bg = "#1976d2"
+            self.button_fg = "#ffffff"
+            self.entry_bg = "#ffffff"
+            self.entry_fg = "#212121"
+            self.success_color = "#388e3c"
+            self.warning_color = "#f57c00"
+            self.error_color = "#d32f2f"
+            self.border_color = "#e0e0e0"
+            self.is_dark_theme = False
+            print(f"Theme detection failed, using light theme: {e}")
+
     def setup_styles(self):
         """Setup custom styles for widgets"""
         style = ttk.Style()
-        style.theme_use('clam')
 
-        # Configure dark theme
-        style.configure('Dark.TFrame', background=self.bg_color)
-        style.configure('Card.TFrame', background=self.card_color, relief='raised', borderwidth=1)
-        style.configure('Dark.TLabel', background=self.bg_color, foreground=self.text_color, font=('Segoe UI', 10))
-        style.configure('Title.TLabel', background=self.bg_color, foreground=self.text_color, font=('Segoe UI', 14, 'bold'))
-        style.configure('Card.TLabel', background=self.card_color, foreground=self.text_color, font=('Segoe UI', 10))
-        style.configure('Accent.TLabel', background=self.card_color, foreground=self.accent_color, font=('Segoe UI', 12, 'bold'))
+        # Use appropriate theme based on OS
+        if self.is_dark_theme:
+            # For dark themes, use a dark-friendly base
+            try:
+                style.theme_use('alt')  # alt theme works better with dark colors
+            except:
+                style.theme_use('clam')
+        else:
+            # For light themes, use clam for modern look
+            try:
+                style.theme_use('clam')
+            except:
+                style.theme_use('default')
 
-        # Custom button style
+        # Configure theme-aware styles
+        style.configure('Dark.TFrame',
+                       background=self.bg_color,
+                       relief='flat',
+                       borderwidth=0)
+
+        style.configure('Card.TFrame',
+                       background=self.card_color,
+                       relief='solid' if self.is_dark_theme else 'raised',
+                       borderwidth=1 if self.is_dark_theme else 2,
+                       padding=15)
+
+        style.configure('Dark.TLabel',
+                       background=self.bg_color,
+                       foreground=self.text_color,
+                       font=('Segoe UI', 10))
+
+        style.configure('Title.TLabel',
+                       background=self.bg_color,
+                       foreground=self.text_color,
+                       font=('Segoe UI', 16, 'bold'))
+
+        style.configure('Card.TLabel',
+                       background=self.card_color,
+                       foreground=self.text_color,
+                       font=('Segoe UI', 10))
+
+        style.configure('Secondary.TLabel',
+                       background=self.card_color,
+                       foreground=self.secondary_text,
+                       font=('Segoe UI', 9))
+
+        style.configure('Accent.TLabel',
+                       background=self.card_color,
+                       foreground=self.accent_color,
+                       font=('Segoe UI', 12, 'bold'))
+
+        style.configure('Large.TLabel',
+                       background=self.card_color,
+                       foreground=self.text_color,
+                       font=('Segoe UI', 14, 'bold'))
+
+        # Custom button styles
         style.configure('Accent.TButton',
-                       background=self.accent_color,
-                       foreground='white',
+                       background=self.button_bg,
+                       foreground=self.button_fg,
                        font=('Segoe UI', 10, 'bold'),
-                       focuscolor='none')
-        style.map('Accent.TButton',
-                 background=[('active', '#45a049')])
+                       focuscolor='none',
+                       borderwidth=0,
+                       padding=(10, 5),
+                       relief='flat')
 
-        # Scale style
+        # Button hover effects
+        hover_color = "#4f7dc9" if self.is_dark_theme else "#1565c0"
+        pressed_color = "#3d5a9a" if self.is_dark_theme else "#0d47a1"
+        style.map('Accent.TButton',
+                 background=[('active', hover_color),
+                           ('pressed', pressed_color)],
+                 relief=[('pressed', 'flat'),
+                        ('active', 'flat')])
+
+        # Secondary button style
+        style.configure('Secondary.TButton',
+                       background=self.card_color,
+                       foreground=self.text_color,
+                       font=('Segoe UI', 10),
+                       focuscolor='none',
+                       borderwidth=1,
+                       padding=(10, 5),
+                       relief='solid')
+
+        style.map('Secondary.TButton',
+                 background=[('active', self.border_color),
+                           ('pressed', self.border_color)],
+                 bordercolor=[('active', self.accent_color),
+                            ('pressed', self.accent_color)])
+
+        # Scale style with improved appearance
+        trough_color = self.border_color
         style.configure('Accent.Horizontal.TScale',
                        background=self.card_color,
-                       troughcolor='#555555',
+                       troughcolor=trough_color,
+                       borderwidth=0,
+                       sliderlength=20,
+                       sliderrelief='flat',
+                       lightcolor=self.accent_color,
+                       darkcolor=self.accent_color)
+
+        style.map('Accent.Horizontal.TScale',
+                 background=[('active', self.accent_color)])
+
+        # Progressbar style with better colors
+        style.configure('Themed.Horizontal.TProgressbar',
+                       background=self.accent_color,
+                       troughcolor=trough_color,
                        borderwidth=0,
                        lightcolor=self.accent_color,
                        darkcolor=self.accent_color)
+
+        # Success/Warning/Error progressbar styles
+        style.configure('Success.Horizontal.TProgressbar',
+                       background=self.success_color,
+                       troughcolor=trough_color,
+                       borderwidth=0)
+
+        style.configure('Warning.Horizontal.TProgressbar',
+                       background=self.warning_color,
+                       troughcolor=trough_color,
+                       borderwidth=0)
+
+        style.configure('Error.Horizontal.TProgressbar',
+                       background=self.error_color,
+                       troughcolor=trough_color,
+                       borderwidth=0)
+
+        # Radiobutton style
+        style.configure('Card.TRadiobutton',
+                       background=self.card_color,
+                       foreground=self.text_color,
+                       font=('Segoe UI', 10),
+                       focuscolor='none',
+                       borderwidth=0)
+
+        style.map('Card.TRadiobutton',
+                 background=[('active', self.card_color)],
+                 foreground=[('active', self.accent_color)])
+
+        # Entry style
+        style.configure('Themed.TEntry',
+                       fieldbackground=self.entry_bg,
+                       foreground=self.entry_fg,
+                       borderwidth=1,
+                       bordercolor=self.border_color,
+                       insertcolor=self.text_color,
+                       padding=5)
+
+        style.map('Themed.TEntry',
+                 bordercolor=[('focus', self.accent_color)])
+
+        # Notebook style (for tabs if needed)
+        style.configure('Themed.TNotebook',
+                       background=self.bg_color,
+                       borderwidth=0)
+
+        style.configure('Themed.TNotebook.Tab',
+                       background=self.card_color,
+                       foreground=self.text_color,
+                       padding=(10, 5),
+                       borderwidth=1)
+
+        style.map('Themed.TNotebook.Tab',
+                 background=[('selected', self.accent_color)],
+                 foreground=[('selected', self.button_fg)])
 
     def setup_variables(self):
         """Initialize variables"""
@@ -85,7 +401,7 @@ class BatteryControlGUI:
         self.current_version = "2.0.0"
         self.github_repo = "FrancyAlinston/Laptop-Battery-Limiter"
         self.release_channel = "stable"  # Can be "stable" or "beta"
-        
+
         # Load settings
         self.load_settings()
 
@@ -137,7 +453,7 @@ class BatteryControlGUI:
         self.status_label.pack(side='right')
 
         # Progress bar for battery level
-        self.battery_progress = ttk.Progressbar(card, length=350, mode='determinate')
+        self.battery_progress = ttk.Progressbar(card, length=350, mode='determinate', style='Themed.Horizontal.TProgressbar')
         self.battery_progress.pack(pady=10)
 
     def create_charging_limit_card(self, parent):
@@ -197,6 +513,7 @@ class BatteryControlGUI:
         for mode_name, mode_value in modes:
             btn = ttk.Radiobutton(mode_buttons_frame, text=mode_name,
                                 variable=self.power_mode, value=mode_value,
+                                style='Card.TRadiobutton',
                                 command=lambda m=mode_value: self.set_power_mode(m))
             btn.pack(side='left', padx=5)
 
@@ -230,6 +547,10 @@ class BatteryControlGUI:
         refresh_btn = ttk.Button(actions_frame, text="🔄 Refresh",
                                command=self.refresh_battery_info)
         refresh_btn.pack(side='left', padx=5)
+
+        theme_btn = ttk.Button(actions_frame, text="🎨 Theme",
+                              command=self.refresh_theme)
+        theme_btn.pack(side='left', padx=5)
 
         update_btn = ttk.Button(actions_frame, text="🔍 Check Updates",
                               command=self.check_for_updates)
@@ -332,13 +653,16 @@ class BatteryControlGUI:
                     self.current_level.set(f"{level}%")
                     self.battery_progress['value'] = level
 
-                    # Color code the battery level
+                    # Color code the battery level and progress bar
                     if level <= 20:
-                        self.level_label.configure(foreground="#ff4444")
+                        self.level_label.configure(foreground=self.error_color)
+                        self.battery_progress.configure(style='Error.Horizontal.TProgressbar')
                     elif level <= 50:
-                        self.level_label.configure(foreground="#ffaa00")
+                        self.level_label.configure(foreground=self.warning_color)
+                        self.battery_progress.configure(style='Warning.Horizontal.TProgressbar')
                     else:
-                        self.level_label.configure(foreground=self.accent_color)
+                        self.level_label.configure(foreground=self.success_color)
+                        self.battery_progress.configure(style='Success.Horizontal.TProgressbar')
 
                 # Get battery status
                 if os.path.exists(self.status_file):
@@ -415,7 +739,7 @@ class BatteryControlGUI:
                 with urllib.request.urlopen(api_url, timeout=10) as response:
                     if response.getcode() == 200:
                         data = json.loads(response.read().decode())
-                        
+
                         if self.release_channel == "beta":
                             # Find the latest release (including pre-releases)
                             if isinstance(data, list) and len(data) > 0:
@@ -424,7 +748,7 @@ class BatteryControlGUI:
                                 raise Exception("No releases found")
                         else:
                             latest_release = data
-                        
+
                         latest_version = latest_release.get('tag_name', '').lstrip('v')
                         release_url = latest_release.get('html_url', '')
                         release_notes = latest_release.get('body', 'No release notes available.')
@@ -518,7 +842,10 @@ class BatteryControlGUI:
 
         text_widget = tk.Text(text_frame, height=8, wrap=tk.WORD,
                              bg=self.card_color, fg=self.text_color,
-                             font=('Segoe UI', 9))
+                             font=('Segoe UI', 9),
+                             insertbackground=self.text_color,
+                             selectbackground=self.accent_color,
+                             selectforeground=self.card_color)
         scrollbar = ttk.Scrollbar(text_frame, orient="vertical", command=text_widget.yview)
         text_widget.configure(yscrollcommand=scrollbar.set)
 
@@ -583,12 +910,12 @@ class BatteryControlGUI:
         stable_frame = ttk.Frame(main_frame, style='Card.TFrame')
         stable_frame.pack(fill='x', pady=5, padx=10, ipady=10)
 
-        stable_radio = ttk.Radiobutton(stable_frame, text="Stable Channel", 
+        stable_radio = ttk.Radiobutton(stable_frame, text="Stable Channel",
                                      variable=self.channel_var, value="stable",
-                                     style='Card.TLabel')
+                                     style='Card.TRadiobutton')
         stable_radio.pack(anchor='w', padx=10, pady=5)
 
-        stable_desc = ttk.Label(stable_frame, 
+        stable_desc = ttk.Label(stable_frame,
                               text="• Stable, tested releases\n• Recommended for most users\n• Less frequent updates",
                               style='Card.TLabel')
         stable_desc.pack(anchor='w', padx=30, pady=(0, 5))
@@ -597,12 +924,12 @@ class BatteryControlGUI:
         beta_frame = ttk.Frame(main_frame, style='Card.TFrame')
         beta_frame.pack(fill='x', pady=5, padx=10, ipady=10)
 
-        beta_radio = ttk.Radiobutton(beta_frame, text="Beta Channel", 
+        beta_radio = ttk.Radiobutton(beta_frame, text="Beta Channel",
                                    variable=self.channel_var, value="beta",
-                                   style='Card.TLabel')
+                                   style='Card.TRadiobutton')
         beta_radio.pack(anchor='w', padx=10, pady=5)
 
-        beta_desc = ttk.Label(beta_frame, 
+        beta_desc = ttk.Label(beta_frame,
                             text="• Early access to new features\n• May contain bugs\n• More frequent updates",
                             style='Card.TLabel')
         beta_desc.pack(anchor='w', padx=30, pady=(0, 5))
@@ -611,8 +938,8 @@ class BatteryControlGUI:
         current_frame = ttk.Frame(main_frame, style='Dark.TFrame')
         current_frame.pack(fill='x', pady=10)
 
-        current_label = ttk.Label(current_frame, 
-                                text=f"Current channel: {self.release_channel.title()}", 
+        current_label = ttk.Label(current_frame,
+                                text=f"Current channel: {self.release_channel.title()}",
                                 style='Dark.TLabel')
         current_label.pack()
 
@@ -625,14 +952,14 @@ class BatteryControlGUI:
             if new_channel != self.release_channel:
                 self.release_channel = new_channel
                 self.save_settings()
-                messagebox.showinfo("Channel Changed", 
+                messagebox.showinfo("Channel Changed",
                                   f"Release channel changed to {new_channel.title()}")
             channel_window.destroy()
 
         def cancel_settings():
             channel_window.destroy()
 
-        apply_btn = ttk.Button(button_frame, text="Apply", 
+        apply_btn = ttk.Button(button_frame, text="Apply",
                              command=apply_settings, style='Accent.TButton')
         apply_btn.pack(side='left', padx=5)
 
@@ -645,7 +972,7 @@ class BatteryControlGUI:
             import os
             config_dir = os.path.expanduser("~/.config/universal-battery-limiter")
             os.makedirs(config_dir, exist_ok=True)
-            
+
             config_file = os.path.join(config_dir, "settings.conf")
             with open(config_file, 'w') as f:
                 f.write(f"release_channel={self.release_channel}\n")
@@ -665,7 +992,45 @@ class BatteryControlGUI:
         except Exception as e:
             print(f"Failed to load settings: {e}")
 
-    # ...existing code...
+    def refresh_theme(self):
+        """Refresh the theme in case the user changed their system theme"""
+        try:
+            # Re-detect theme
+            self.detect_os_theme()
+
+            # Re-apply styles
+            self.setup_styles()
+
+            # Update window background
+            self.root.configure(bg=self.bg_color)
+
+            # Force a refresh of all widgets
+            self.root.update_idletasks()
+
+            print("Theme refreshed successfully")
+
+        except Exception as e:
+            print(f"Failed to refresh theme: {e}")
+
+    def check_theme_change(self):
+        """Check if the system theme has changed"""
+        try:
+            # Store current theme state
+            old_theme = self.is_dark_theme
+
+            # Re-detect theme
+            self.detect_os_theme()
+
+            # If theme changed, refresh everything
+            if old_theme != self.is_dark_theme:
+                print(f"Theme changed from {'dark' if old_theme else 'light'} to {'dark' if self.is_dark_theme else 'light'}")
+                self.refresh_theme()
+
+        except Exception as e:
+            print(f"Failed to check theme change: {e}")
+
+        # Schedule next check in 10 seconds
+        self.root.after(10000, self.check_theme_change)
 def main():
     root = tk.Tk()
     app = BatteryControlGUI(root)
