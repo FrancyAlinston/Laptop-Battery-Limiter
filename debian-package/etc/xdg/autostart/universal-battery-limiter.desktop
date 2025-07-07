@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Universal Battery Limiter
-Comment=Battery charge limit management for all compatible laptops
+Comment=Battery charge limit management for all laptops
 Exec=/usr/local/bin/battery-indicator
 Icon=battery
 Terminal=false

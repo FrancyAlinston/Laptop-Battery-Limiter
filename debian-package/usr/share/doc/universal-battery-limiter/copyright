@@ -1,5 +1,5 @@
-Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: asus-battery-limiter
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: universal-battery-limiter
 Upstream-Contact: FrancyAlinston <francyalen@gmail.com>
 Source: https://github.com/FrancyAlinston/Laptop-Battery-Limiter
 

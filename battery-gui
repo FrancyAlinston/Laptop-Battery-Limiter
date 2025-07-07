@@ -810,17 +810,17 @@ class BatteryControlGUI:
         entry_frame.pack(fill='x', padx=20, pady=10)
 
         ttk.Label(entry_frame, text="Or enter manually:", style='Card.TLabel').pack(anchor='w', pady=(0, 5))
-        
+
         input_row = ttk.Frame(entry_frame, style='Card.TFrame')
         input_row.pack(fill='x')
-        
+
         self.manual_limit_entry = ttk.Entry(input_row, style='Ubuntu.TEntry', width=6)
         self.manual_limit_entry.pack(side='left', padx=(0, 8))
-        
+
         ttk.Label(input_row, text="%", style='Card.TLabel').pack(side='left', padx=(0, 8))
-        
-        set_manual_btn = ttk.Button(input_row, text="Set", 
-                                   command=self.set_manual_limit, 
+
+        set_manual_btn = ttk.Button(input_row, text="Set",
+                                   command=self.set_manual_limit,
                                    style='Secondary.TButton')
         set_manual_btn.pack(side='left')
 

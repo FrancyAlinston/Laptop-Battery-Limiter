@@ -1,9 +1,9 @@
-name: asus-battery-limiter
+name: universal-battery-limiter
 base: core22
 version: '2.0.0'
-summary: Battery charge limit management for ASUS laptops
+summary: Battery charge limit management for all laptops
 description: |
-  A comprehensive battery charge limit management tool for ASUS laptops 
+  A comprehensive battery charge limit management tool for all laptops 
   with multiple interfaces including CLI, GUI, and system tray integration.
   
   Features:
@@ -20,7 +20,7 @@ grade: stable
 confinement: classic
 
 parts:
-  asus-battery-limiter:
+  universal-battery-limiter:
     plugin: dump
     source: .
     organize:

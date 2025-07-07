@@ -13,7 +13,7 @@ print_colored() {
     echo -e "${1}${2}${NC}"
 }
 
-print_colored $BLUE "🔧 Installing ASUS Battery Limiter..."
+print_colored $BLUE "🔧 Installing Universal Battery Limiter..."
 
 # Update package lists
 print_colored $YELLOW "📦 Updating package lists..."
@@ -38,7 +38,7 @@ THRESHOLD_FILE="/sys/class/power_supply/BAT0/charge_control_end_threshold"
 if [ ! -f "$THRESHOLD_FILE" ]; then
     print_colored $YELLOW "⚠️ Warning: Battery charge control file not found: $THRESHOLD_FILE"
     print_colored $YELLOW "This package may not work on your system."
-    print_colored $BLUE "Please check if your ASUS laptop supports battery charge control."
+    print_colored $BLUE "Please check if your laptop supports battery charge control."
 else
     print_colored $GREEN "✅ Battery charge control supported!"
 fi
@@ -50,7 +50,7 @@ if command -v update-desktop-database >/dev/null 2>&1; then
 fi
 
 # Notify user about installation
-print_colored $GREEN "✅ ASUS Battery Limiter installed successfully!"
+print_colored $GREEN "✅ Universal Battery Limiter installed successfully!"
 echo ""
 print_colored $BLUE "🚀 Available commands:"
 echo "  battery-cli           - Interactive CLI"

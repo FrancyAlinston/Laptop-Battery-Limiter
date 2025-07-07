@@ -18,10 +18,10 @@ case "$1" in
         print_colored $BLUE "🧹 Final cleanup..."
         
         # Remove any remaining configuration files
-        rm -f /etc/xdg/autostart/asus-battery-limiter.desktop || true
+        rm -f /etc/xdg/autostart/universal-battery-limiter.desktop || true
         
         # Clean up any cached files
-        rm -rf /var/cache/asus-battery-limiter || true
+        rm -rf /var/cache/universal-battery-limiter || true
         
         # Update desktop database one more time
         if command -v update-desktop-database >/dev/null 2>&1; then

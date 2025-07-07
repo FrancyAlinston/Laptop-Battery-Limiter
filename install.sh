@@ -65,8 +65,8 @@ print_colored $YELLOW "🖥️ Setting up autostart..."
 # Create autostart entry
 cat > ~/.config/autostart/battery-limiter.desktop << EOF
 [Desktop Entry]
-Name=ASUS Battery Limiter
-Comment=Battery charge limit management for ASUS laptops
+Name=Universal Battery Limiter
+Comment=Battery charge limit management for all laptops
 Exec=/usr/local/bin/battery-indicator
 Icon=battery
 Terminal=false

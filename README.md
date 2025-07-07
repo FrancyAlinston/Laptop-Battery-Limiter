@@ -96,10 +96,12 @@ battery-limit reset     # Reset to 100%
 ## 🛠️ Supported Laptops
 
 This tool works with laptops that support ACPI battery charge control, including:
-- **ASUS**: ZenBook, VivoBook, ROG, TUF Gaming series
 - **Lenovo**: ThinkPad, IdeaPad, Legion series
 - **HP**: Pavilion, Envy, Omen series
 - **Dell**: XPS, Inspiron, Latitude series
+- **ASUS**: ZenBook, VivoBook, ROG, TUF Gaming series
+- **Acer**: Aspire, Predator, Swift series
+- **MSI**: Gaming and Creator series
 - **And many other brands that support charge control**
 
 ### Compatibility Check

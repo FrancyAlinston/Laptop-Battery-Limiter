@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ASUS Battery Limiter Uninstall Script
+# Universal Battery Limiter Uninstall Script
 
 set -e
 
@@ -14,7 +14,7 @@ print_colored() {
     echo -e "${1}${2}${NC}"
 }
 
-print_colored $BLUE "🗑️ ASUS Battery Limiter Uninstaller"
+print_colored $BLUE "🗑️ Universal Battery Limiter Uninstaller"
 echo "===================================="
 
 # Check if running as root
@@ -25,15 +25,15 @@ if [ "$EUID" -eq 0 ]; then
 fi
 
 # Check if installed via package manager
-if dpkg -l | grep -q asus-battery-limiter; then
+if dpkg -l | grep -q universal-battery-limiter; then
     print_colored $YELLOW "📦 Package installation detected"
     print_colored $BLUE "To uninstall the .deb package, use:"
-    echo "sudo apt remove asus-battery-limiter"
+    echo "sudo apt remove universal-battery-limiter"
     echo ""
     read -p "Do you want to uninstall the package now? (y/N): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        sudo apt remove asus-battery-limiter
+        sudo apt remove universal-battery-limiter
         print_colored $GREEN "✅ Package uninstalled successfully!"
         exit 0
     else
@@ -61,12 +61,12 @@ sudo rm -f /usr/local/bin/set-charge-limit.sh
 # Remove autostart entries
 print_colored $YELLOW "🗑️ Removing autostart entries..."
 rm -f ~/.config/autostart/battery-limiter.desktop || true
-rm -f ~/.config/autostart/asus-battery-limiter.desktop || true
-sudo rm -f /etc/xdg/autostart/asus-battery-limiter.desktop || true
+rm -f ~/.config/autostart/universal-battery-limiter.desktop || true
+sudo rm -f /etc/xdg/autostart/universal-battery-limiter.desktop || true
 
 # Remove sudo permissions
 print_colored $YELLOW "🔐 Removing sudo permissions..."
-sudo rm -f /etc/sudoers.d/asus-battery-limiter
+sudo rm -f /etc/sudoers.d/universal-battery-limiter
 
 # Update desktop database
 print_colored $YELLOW "🔄 Updating desktop database..."

@@ -13,7 +13,7 @@ print_colored() {
     echo -e "${1}${2}${NC}"
 }
 
-print_colored $BLUE "🗑️ Uninstalling ASUS Battery Limiter..."
+print_colored $BLUE "🗑️ Uninstalling Universal Battery Limiter..."
 
 # Stop the indicator if running
 print_colored $YELLOW "⏹️ Stopping battery indicator..."
@@ -33,7 +33,7 @@ sleep 2
 # Remove user autostart entries (in case they exist)
 print_colored $YELLOW "🧹 Cleaning user autostart entries..."
 rm -f ~/.config/autostart/battery-limiter.desktop || true
-rm -f ~/.config/autostart/asus-battery-limiter.desktop || true
+rm -f ~/.config/autostart/universal-battery-limiter.desktop || true
 
 # Update desktop database
 print_colored $YELLOW "🔄 Updating desktop database..."
@@ -41,7 +41,7 @@ if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database || true
 fi
 
-print_colored $GREEN "✅ ASUS Battery Limiter removed successfully!"
+print_colored $GREEN "✅ Universal Battery Limiter removed successfully!"
 print_colored $BLUE "ℹ️ Your current battery settings will remain unchanged"
 
 exit 0
