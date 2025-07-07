@@ -1,4 +1,4 @@
-# ASUS Battery Limiter CI/CD Pipeline
+# Universal Battery Limiter CI/CD Pipeline
 # Builds and tests the application, creates .deb packages for releases
 # Supports automatic versioning and Ubuntu native updater integration
 
@@ -147,19 +147,19 @@ jobs:
         ./build-deb.sh
         # Rename the package to include the version
         VERSION=${{ needs.get-version.outputs.version }}
-        mv asus-battery-limiter_*.deb asus-battery-limiter_${VERSION}_all.deb
+        mv universal-battery-limiter_*.deb universal-battery-limiter_${VERSION}_all.deb
     - name: Test .deb package
       run: |
         VERSION=${{ needs.get-version.outputs.version }}
         # Check package contents
-        dpkg-deb -c asus-battery-limiter_${VERSION}_all.deb
+        dpkg-deb -c universal-battery-limiter_${VERSION}_all.deb
         # Check package info
-        dpkg-deb -I asus-battery-limiter_${VERSION}_all.deb
+        dpkg-deb -I universal-battery-limiter_${VERSION}_all.deb
     - name: Upload .deb artifact
       uses: actions/upload-artifact@v3
       with:
         name: deb-package
-        path: asus-battery-limiter_*.deb
+        path: universal-battery-limiter_*.deb
     - name: Upload .deb package to release
       if: github.event_name == 'release'
       uses: actions/upload-release-asset@v1
@@ -167,8 +167,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
-        asset_name: asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+        asset_path: ./universal-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+        asset_name: universal-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
         asset_content_type: application/vnd.debian.binary-package
 
   create-release:
@@ -191,14 +191,14 @@ jobs:
         tag_name: v${{ needs.get-version.outputs.version }}
         release_name: Release v${{ needs.get-version.outputs.version }}
         body: |
-          ## ASUS Battery Limiter v${{ needs.get-version.outputs.version }}
+          ## Universal Battery Limiter v${{ needs.get-version.outputs.version }}
 
           ### Installation
 
           **Ubuntu/Debian (Recommended):**
           ```bash
-          wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.get-version.outputs.version }}/asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
-          sudo dpkg -i asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+          wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.get-version.outputs.version }}/universal-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+          sudo dpkg -i universal-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
           sudo apt-get install -f  # Install any missing dependencies
           ```
 
@@ -216,10 +216,11 @@ jobs:
           - Automatic update checking
           - Native Ubuntu package management integration
           - Professional installation and uninstallation
+          - Universal compatibility with all laptop brands
 
           ### System Requirements
           - Ubuntu 20.04+ or Debian 11+
-          - ASUS laptop with supported battery charging control
+          - Compatible laptop with battery charging control support
           - Python 3.8+
           - GTK 3.0+
 
@@ -232,8 +233,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
-        asset_name: asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+        asset_path: ./universal-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+        asset_name: universal-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
         asset_content_type: application/vnd.debian.binary-package
 
   publish-ppa:

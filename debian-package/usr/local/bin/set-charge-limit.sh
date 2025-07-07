@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# ASUS Battery Charge Limit Script
-# This script sets the battery charging limit for ASUS laptops
+# Universal Battery Charge Limit Script
+# This script sets the battery charging limit for compatible laptops
 
 CHARGE_LIMIT=${1:-80}
 THRESHOLD_FILE="/sys/class/power_supply/BAT0/charge_control_end_threshold"

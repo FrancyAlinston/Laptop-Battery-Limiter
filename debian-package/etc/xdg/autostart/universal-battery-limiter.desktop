@@ -1,6 +1,6 @@
 [Desktop Entry]
-Name=ASUS Battery Limiter
-Comment=Battery charge limit management for ASUS laptops
+Name=Universal Battery Limiter
+Comment=Battery charge limit management for all compatible laptops
 Exec=/usr/local/bin/battery-indicator
 Icon=battery
 Terminal=false
@@ -9,5 +9,5 @@ Categories=System;Settings;
 StartupNotify=true
 X-GNOME-Autostart-enabled=true
 X-GNOME-AutoRestart=true
-X-Ubuntu-Gettext-Domain=asus-battery-limiter
+X-Ubuntu-Gettext-Domain=universal-battery-limiter
 Hidden=false

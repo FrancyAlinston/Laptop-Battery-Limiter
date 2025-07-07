@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ASUS Battery Charge Limit CLI
+# Universal Battery Charge Limit CLI
 # Simple interactive tool for managing battery charging limits
 
 THRESHOLD_FILE="/sys/class/power_supply/BAT0/charge_control_end_threshold"
@@ -149,7 +149,7 @@ handle_preset() {
 
 # Function to show help
 show_help() {
-    echo "ASUS Battery Charge Limit CLI"
+    echo "Universal Battery Charge Limit CLI"
     echo
     echo "Usage:"
     echo "  $(basename $0)              # Interactive mode"
@@ -182,7 +182,7 @@ main() {
             check_support
             check_root
             
-            print_colored $BLUE "🔧 ASUS Battery Charge Limit CLI"
+            print_colored $BLUE "🔧 Universal Battery Charge Limit CLI"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo
             

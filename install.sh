@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ASUS Battery Limiter Installation Script
+# Universal Battery Limiter Installation Script
 # Installs the battery limiter tools system-wide
 
 set -e
@@ -16,7 +16,7 @@ print_colored() {
     echo -e "${1}${2}${NC}"
 }
 
-print_colored $BLUE "🔧 ASUS Battery Limiter Installer"
+print_colored $BLUE "🔧 Universal Battery Limiter Installer"
 echo "=================================="
 
 # Check if running as root

@@ -236,7 +236,7 @@ class BatteryLimitIndicator:
         try:
             # Check if installed via APT (Ubuntu/Debian)
             result = subprocess.run(
-                ["dpkg", "-l", "asus-battery-limiter"],
+                ["dpkg", "-l", "universal-battery-limiter"],
                 capture_output=True, text=True, timeout=5
             )
 
@@ -244,16 +244,16 @@ class BatteryLimitIndicator:
                 # Package is installed via APT
                 # Check for updates
                 apt_result = subprocess.run(
-                    ["apt", "list", "--upgradable", "asus-battery-limiter"],
+                    ["apt", "list", "--upgradable", "universal-battery-limiter"],
                     capture_output=True, text=True, timeout=10
                 )
 
-                if "asus-battery-limiter" in apt_result.stdout and "upgradable" in apt_result.stdout:
+                if "universal-battery-limiter" in apt_result.stdout and "upgradable" in apt_result.stdout:
                     return True, "apt"
 
             # Check if installed via Snap
             snap_result = subprocess.run(
-                ["snap", "list", "asus-battery-limiter"],
+                ["snap", "list", "universal-battery-limiter"],
                 capture_output=True, text=True, timeout=5
             )
 
@@ -264,7 +264,7 @@ class BatteryLimitIndicator:
                     capture_output=True, text=True, timeout=10
                 )
 
-                if "asus-battery-limiter" in snap_refresh.stdout:
+                if "universal-battery-limiter" in snap_refresh.stdout:
                     return True, "snap"
 
             return False, None
@@ -276,18 +276,18 @@ class BatteryLimitIndicator:
         """Show native update available dialog"""
         if update_method == "apt":
             title = "Ubuntu System Update Available"
-            message = ("A new version of ASUS Battery Limiter is available through the Ubuntu package manager.\n\n"
+            message = ("A new version of Universal Battery Limiter is available through the Ubuntu package manager.\n\n"
                       "You can update using:\n"
                       "• Software Updater (recommended)\n"
-                      "• Terminal: sudo apt update && sudo apt upgrade asus-battery-limiter\n\n"
+                      "• Terminal: sudo apt update && sudo apt upgrade universal-battery-limiter\n\n"
                       "Would you like to open Software Updater?")
             command = ["gnome-software", "--mode=updates"]
         elif update_method == "snap":
             title = "Snap Store Update Available"
-            message = ("A new version of ASUS Battery Limiter is available through the Snap Store.\n\n"
+            message = ("A new version of Universal Battery Limiter is available through the Snap Store.\n\n"
                       "You can update using:\n"
                       "• Snap Store app (recommended)\n"
-                      "• Terminal: sudo snap refresh asus-battery-limiter\n\n"
+                      "• Terminal: sudo snap refresh universal-battery-limiter\n\n"
                       "Would you like to open Snap Store?")
             command = ["snap-store"]
         else:
@@ -310,9 +310,9 @@ class BatteryLimitIndicator:
             except FileNotFoundError:
                 # Fallback to terminal command
                 if update_method == "apt":
-                    subprocess.Popen(["gnome-terminal", "--", "sudo", "apt", "update", "&&", "sudo", "apt", "upgrade", "asus-battery-limiter"])
+                    subprocess.Popen(["gnome-terminal", "--", "sudo", "apt", "update", "&&", "sudo", "apt", "upgrade", "universal-battery-limiter"])
                 elif update_method == "snap":
-                    subprocess.Popen(["gnome-terminal", "--", "sudo", "snap", "refresh", "asus-battery-limiter"])
+                    subprocess.Popen(["gnome-terminal", "--", "sudo", "snap", "refresh", "universal-battery-limiter"])
 
         dialog.destroy()
 
@@ -356,9 +356,9 @@ class BatteryLimitIndicator:
 
     def show_about(self, widget):
         dialog = Gtk.AboutDialog()
-        dialog.set_name("ASUS Battery Limiter")
-        dialog.set_version("1.0")
-        dialog.set_comments("Battery charge limit management for ASUS laptops")
+        dialog.set_name("Universal Battery Limiter")
+        dialog.set_version("2.0.0")
+        dialog.set_comments("Battery charge limit management for all compatible laptops")
         dialog.set_website("https://github.com/FrancyAlinston/Laptop-Battery-Limiter")
         dialog.set_authors(["FrancyAlinston"])
         dialog.set_license_type(Gtk.License.MIT_X11)

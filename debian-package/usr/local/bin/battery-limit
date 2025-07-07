@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ASUS Battery Charge Limit Manager
+# Universal Battery Charge Limit Manager
 # Easy management of battery charging limits
 
 SCRIPT_NAME=$(basename "$0")
@@ -30,7 +30,7 @@ get_current_limit() {
 }
 
 show_status() {
-    echo "=== ASUS Battery Charge Limit Status ==="
+    echo "=== Universal Battery Charge Limit Status ==="
     echo "Current charge limit: $(get_current_limit)%"
     echo "Current battery level: $(cat /sys/class/power_supply/BAT0/capacity)%"
     echo "Battery status: $(cat /sys/class/power_supply/BAT0/status)"

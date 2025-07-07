@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ASUS Battery Limiter .deb Package Builder
+# Universal Battery Limiter .deb Package Builder
 # Builds a Debian package for easy installation
 
 set -e
@@ -15,7 +15,7 @@ print_colored() {
     echo -e "${1}${2}${NC}"
 }
 
-print_colored $BLUE "🔧 Building ASUS Battery Limiter .deb Package"
+print_colored $BLUE "🔧 Building Universal Battery Limiter .deb Package"
 echo "============================================="
 
 # Check if dpkg-deb is available
@@ -27,23 +27,23 @@ fi
 
 # Clean up any previous builds
 print_colored $YELLOW "🧹 Cleaning up previous builds..."
-rm -f asus-battery-limiter_*.deb
+rm -f universal-battery-limiter_*.deb
 
 # Copy current executables to package
 print_colored $YELLOW "📋 Updating package files..."
 cp battery-cli battery-limit battery-gui battery-indicator set-charge-limit.sh debian-package/usr/local/bin/
-cp README.md debian-package/usr/share/doc/asus-battery-limiter/
+cp README.md debian-package/usr/share/doc/universal-battery-limiter/
 
 # Set permissions
 chmod 755 debian-package/usr/local/bin/*
-chmod 440 debian-package/etc/sudoers.d/asus-battery-limiter
+chmod 440 debian-package/etc/sudoers.d/universal-battery-limiter
 
 # Build the package
 print_colored $YELLOW "📦 Building .deb package..."
 dpkg-deb --build debian-package
 
 # Rename the package
-PACKAGE_NAME="asus-battery-limiter_2.0.0_all.deb"
+PACKAGE_NAME="universal-battery-limiter_2.0.0_all.deb"
 mv debian-package.deb "$PACKAGE_NAME"
 
 # Verify the package
@@ -59,4 +59,4 @@ print_colored $BLUE "🚀 To install (with automatic dependencies):"
 echo "sudo dpkg -i $PACKAGE_NAME"
 echo
 print_colored $BLUE "🗑️ To uninstall:"
-echo "sudo apt remove asus-battery-limiter"
+echo "sudo apt remove universal-battery-limiter"

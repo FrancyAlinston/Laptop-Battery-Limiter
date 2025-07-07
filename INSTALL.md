@@ -1,4 +1,4 @@
-# Installation Guide for ASUS Battery Limiter
+# Installation Guide for Universal Battery Limiter
 
 ## Method 1: Install from .deb Package (Recommended)
 
@@ -17,7 +17,7 @@ sudo apt install dpkg-dev
 ### Install the Package
 ```bash
 # Install the package - all dependencies are automatically installed!
-sudo dpkg -i asus-battery-limiter_1.0.0_all.deb
+sudo dpkg -i universal-battery-limiter_2.0.0_all.deb
 ```
 
 **Note**: The package automatically installs all required dependencies including:
@@ -57,7 +57,7 @@ After installation, the system tray indicator will start automatically on login.
 
 ### From .deb Package
 ```bash
-sudo apt remove asus-battery-limiter
+sudo apt remove universal-battery-limiter
 ```
 
 ### Manual Installation
@@ -67,7 +67,7 @@ sudo apt remove asus-battery-limiter
 
 ## Compatibility
 
-This package works on ASUS laptops that support battery charge control through:
+This package works on laptops that support battery charge control through:
 - `/sys/class/power_supply/BAT0/charge_control_end_threshold`
 
 Test compatibility with:
