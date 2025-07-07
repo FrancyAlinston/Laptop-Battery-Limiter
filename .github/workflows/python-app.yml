@@ -6,10 +6,10 @@ name: Build and Package
 
 on:
   push:
-    branches: [ "main", "stable", "beta" ]
+    branches: [ "stable", "beta" ]  # Only build public releases from stable/beta
     tags: [ "v*" ]
   pull_request:
-    branches: [ "main", "stable", "beta" ]
+    branches: [ "stable", "beta" ]  # Only allow PRs to stable/beta
   release:
     types: [published]
   workflow_dispatch:
@@ -19,14 +19,13 @@ on:
         required: false
         default: ''
       branch:
-        description: 'Branch to release from (stable, beta, main)'
+        description: 'Branch to release from (stable, beta)'
         required: false
         default: 'stable'
         type: choice
         options:
           - stable
           - beta
-          - main
 
 permissions:
   contents: write
@@ -107,7 +106,7 @@ jobs:
   build-deb:
     needs: [test, get-version]
     runs-on: ubuntu-latest
-    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/stable'
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/beta'
 
     steps:
     - uses: actions/checkout@v4
@@ -130,8 +129,8 @@ jobs:
           RELEASE_TYPE="beta"
           VERSION="$VERSION-beta"
         else
-          RELEASE_TYPE="dev"
-          VERSION="$VERSION-dev"
+          # For tags or manual dispatch, default to stable
+          RELEASE_TYPE="stable"
         fi
         
         echo "Release type: $RELEASE_TYPE"
