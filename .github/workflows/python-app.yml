@@ -6,10 +6,10 @@ name: Build and Package
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "stable", "beta" ]  # Only build public releases from stable/beta
     tags: [ "v*" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "stable", "beta" ]  # Only allow PRs to stable/beta
   release:
     types: [published]
   workflow_dispatch:
@@ -18,6 +18,14 @@ on:
         description: 'Version to release (e.g., 1.0.1)'
         required: false
         default: ''
+      branch:
+        description: 'Branch to release from (stable, beta)'
+        required: false
+        default: 'stable'
+        type: choice
+        options:
+          - stable
+          - beta
 
 permissions:
   contents: write
@@ -98,7 +106,7 @@ jobs:
   build-deb:
     needs: [test, get-version]
     runs-on: ubuntu-latest
-    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/beta'
 
     steps:
     - uses: actions/checkout@v4
@@ -109,11 +117,30 @@ jobs:
     - name: Update version in files
       run: |
         VERSION=${{ needs.get-version.outputs.version }}
+        BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        
         echo "Building version: $VERSION"
+        echo "Branch: $BRANCH_NAME"
+        
+        # Determine release type based on branch
+        if [ "$BRANCH_NAME" = "stable" ]; then
+          RELEASE_TYPE="stable"
+        elif [ "$BRANCH_NAME" = "beta" ]; then
+          RELEASE_TYPE="beta"
+          VERSION="$VERSION-beta"
+        else
+          # For tags or manual dispatch, default to stable
+          RELEASE_TYPE="stable"
+        fi
+        
+        echo "Release type: $RELEASE_TYPE"
+        echo "Final version: $VERSION"
+        
         # Update version in control file
         sed -i "s/^Version:.*/Version: $VERSION/" debian-package/DEBIAN/control
         # Update version in scripts
-        sed -i "s/VERSION=\".*\"/VERSION=\"$VERSION\"/" battery-cli battery-limit battery-gui battery-indicator
+        sed -i "s/current_version = \".*\"/current_version = \"$VERSION\"/" battery-indicator
+        sed -i "s/VERSION=\".*\"/VERSION=\"$VERSION\"/" battery-cli battery-limit
     - name: Build .deb package
       run: |
         chmod +x build-deb.sh
@@ -178,7 +205,7 @@ jobs:
           **Manual Installation:**
           ```bash
           git clone https://github.com/${{ github.repository }}.git
-          cd Battery-Limter
+          cd Laptop-Battery-Limiter
           chmod +x install.sh
           sudo ./install.sh
           ```
@@ -196,7 +223,7 @@ jobs:
           - Python 3.8+
           - GTK 3.0+
 
-          For detailed installation instructions, see [INSTALL.md](https://github.com/${{ github.repository }}/blob/main/INSTALL.md).
+          For detailed installation instructions, see [INSTALL.md](https://github.com/${{ github.repository }}/blob/stable/INSTALL.md).
         draft: false
         prerelease: false
     - name: Upload Release Asset
