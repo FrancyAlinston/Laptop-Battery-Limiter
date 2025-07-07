@@ -1,14 +1,14 @@
 name: universal-battery-limiter
 base: core22
-version: '2.0.0'
+version: '2.1.0'
 summary: Battery charge limit management for all laptops
 description: |
-  A comprehensive battery charge limit management tool for all laptops 
+  A comprehensive battery charge limit management tool for all laptops
   with multiple interfaces including CLI, GUI, and system tray integration.
-  
+
   Features:
   - Interactive CLI with colored output and presets
-  - Modern GUI application with dark theme  
+  - Modern GUI application with dark theme
   - System tray indicator for quick access
   - Battery status monitoring
   - Support for 50-100% charge limits
@@ -16,8 +16,29 @@ description: |
   - Automatic update checking from GitHub
   - Auto-start system tray integration
 
+# Snap Store metadata
+website: https://github.com/FrancyAlinston/Laptop-Battery-Limiter
+source-code: https://github.com/FrancyAlinston/Laptop-Battery-Limiter
+issues: https://github.com/FrancyAlinston/Laptop-Battery-Limiter/issues
+donation: https://github.com/sponsors/FrancyAlinston
+contact: francyalen@gmail.com
+license: MIT
+title: Universal Battery Limiter
+icon: snap/gui/battery-limiter.svg
+
+# Package metadata
 grade: stable
-confinement: classic
+confinement: strict
+
+plugs:
+  battery-control:
+    interface: system-files
+    read:
+      - /sys/class/power_supply/BAT0/capacity
+      - /sys/class/power_supply/BAT0/status
+      - /sys/class/power_supply/BAT0/charge_control_end_threshold
+    write:
+      - /sys/class/power_supply/BAT0/charge_control_end_threshold
 
 parts:
   universal-battery-limiter:
@@ -37,21 +58,24 @@ parts:
       - gir1.2-appindicator3-0.1
       - gir1.2-notify-0.7
       - python3-tk
-      - policykit-1
 
 apps:
   battery-cli:
     command: bin/battery-cli
-    
+    plugs: [battery-control]
+
   battery-limit:
     command: bin/battery-limit
-    
+    plugs: [battery-control]
+
   battery-gui:
     command: bin/battery-gui
     extensions: [gnome]
-    
+    plugs: [battery-control, home]
+
   battery-indicator:
     command: bin/battery-indicator
     extensions: [gnome]
+    plugs: [battery-control, home]
     daemon: simple
     restart-condition: always

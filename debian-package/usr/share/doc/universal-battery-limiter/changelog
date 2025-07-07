@@ -1,8 +1,41 @@
+universal-battery-limiter (2.1.0) stable; urgency=low
+
+  * Version 2.1.0 release - Enhanced Distribution and Metadata
+  * NEW: Comprehensive Snap Store metadata and packaging
+  * NEW: Enhanced Debian package metadata with VCS information
+  * NEW: Professional package documentation and contributor information
+  * NEW: Custom SVG icon for Snap Store presence
+  * NEW: Desktop entry for Snap GUI integration
+  * NEW: Package information documentation (PACKAGE-INFO.md)
+  * NEW: Distribution-specific metadata files
+  * IMPROVED: Snap Store presence with proper categorization
+  * IMPROVED: Debian package control with enhanced fields
+  * IMPROVED: Changelog with detailed version history
+  * IMPROVED: Build scripts for both Snap and Debian packages
+  * ENHANCED: Professional packaging for wider distribution
+  * ENHANCED: Store optimization with keywords and descriptions
+
+ -- FrancyAlinston <francyalen@gmail.com>  Tue, 08 Jul 2025 00:30:00 +0100
+
 universal-battery-limiter (2.0.0) stable; urgency=low
 
-  * Version 2.0.0 release
+  * Version 2.0.0 release - Universal Battery Limiter
+  * BREAKING: Rebranded from ASUS-specific to universal compatibility
+  * NEW: Support for all laptop brands (Lenovo, HP, Dell, ASUS, Acer, MSI, etc.)
+  * NEW: Enhanced GUI with automatic OS theme detection
+  * NEW: Modern Ubuntu 24.04 styling and design
+  * NEW: Improved system tray integration with quick presets
+  * NEW: Professional packaging with proper metadata
+  * NEW: Snap package support with secure confinement
+  * IMPROVED: CLI interface with better error handling
+  * IMPROVED: Battery status monitoring and display
+  * IMPROVED: Installation and uninstallation scripts
+  * IMPROVED: Documentation and user guides
+  * FIXED: Theme detection across multiple desktop environments
+  * FIXED: Window sizing and scrolling issues
+  * FIXED: Update checking and channel management
   * See GitHub releases for detailed changelog
 
- -- FrancyAlinston <francyalen@gmail.com>  Mon, 07 Jul 2025 18:20:00 +0100
+ -- FrancyAlinston <francyalen@gmail.com>  Tue, 08 Jul 2025 00:15:00 +0100
 
 

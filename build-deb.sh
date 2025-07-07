@@ -43,7 +43,7 @@ print_colored $YELLOW "📦 Building .deb package..."
 dpkg-deb --build debian-package
 
 # Rename the package
-PACKAGE_NAME="universal-battery-limiter_2.0.0_all.deb"
+PACKAGE_NAME="universal-battery-limiter_2.1.0_all.deb"
 mv debian-package.deb "$PACKAGE_NAME"
 
 # Verify the package
