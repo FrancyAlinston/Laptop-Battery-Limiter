@@ -25,10 +25,9 @@ class BatteryControlGUI:
     def setup_window(self):
         """Configure the main window"""
         self.root.title("Universal Battery Control Center")
-        self.root.geometry("450x650")  # Slightly taller to accommodate scrolling
-        self.root.resizable(True, True)  # Allow resizing for better scroll experience
-        self.root.minsize(400, 500)     # Set minimum size
-
+        self.root.geometry("450x600")  # Fixed size optimized for content
+        self.root.resizable(False, False)  # Disable resizing
+        
         # Detect OS theme
         self.detect_os_theme()
 
@@ -625,9 +624,9 @@ class BatteryControlGUI:
         self.load_settings()
 
     def create_widgets(self):
-        """Create all GUI widgets with scrollable interface"""
-        # Create a canvas and scrollbar for scrolling
-        self.canvas = tk.Canvas(self.root, bg=self.bg_color, highlightthickness=0)
+        """Create all GUI widgets with vertical scrolling only"""
+        # Create a canvas and scrollbar for vertical scrolling only
+        self.canvas = tk.Canvas(self.root, bg=self.bg_color, highlightthickness=0, width=450)
         self.scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=self.canvas.yview)
         self.scrollable_frame = ttk.Frame(self.canvas, style='Dark.TFrame')
 
@@ -637,8 +636,12 @@ class BatteryControlGUI:
             lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
         )
 
-        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        # Create window with fixed width to prevent horizontal scrolling
+        self.canvas_window = self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Bind canvas resize to update scrollable frame width
+        self.canvas.bind('<Configure>', self._on_canvas_configure)
 
         # Pack canvas and scrollbar
         self.canvas.pack(side="left", fill="both", expand=True)
@@ -647,7 +650,10 @@ class BatteryControlGUI:
         # Bind mouse wheel events for scrolling
         self.bind_mouse_wheel()
 
-        # Main content frame
+        # Initialize canvas width after creation
+        self.root.after(10, self._initialize_canvas_width)
+
+        # Main content frame with fixed width
         main_frame = ttk.Frame(self.scrollable_frame, style='Dark.TFrame')
         main_frame.pack(fill='both', expand=True, padx=15, pady=15)
 
@@ -694,7 +700,7 @@ class BatteryControlGUI:
         self.status_label.pack(side='right')
 
         # Progress bar for battery level
-        self.battery_progress = ttk.Progressbar(card, length=350, mode='determinate', style='Themed.Horizontal.TProgressbar')
+        self.battery_progress = ttk.Progressbar(card, length=320, mode='determinate', style='Themed.Horizontal.TProgressbar')
         self.battery_progress.pack(pady=10)
 
     def create_charging_limit_card(self, parent):
@@ -1385,10 +1391,33 @@ class BatteryControlGUI:
         try:
             self.root.update_idletasks()
             self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+            # Ensure the scrollable frame width matches canvas width
+            canvas_width = self.canvas.winfo_width()
+            if canvas_width > 1:  # Only update if canvas has been rendered
+                self.canvas.itemconfig(self.canvas_window, width=canvas_width)
         except Exception as e:
             print(f"Scroll region update error: {e}")
 
-    # ...existing code...
+    def _on_canvas_configure(self, event):
+        """Handle canvas resize to update scrollable frame width"""
+        try:
+            # Update the scrollable frame width to match canvas width
+            canvas_width = event.width
+            self.canvas.itemconfig(self.canvas_window, width=canvas_width)
+        except Exception as e:
+            print(f"Canvas configure error: {e}")
+
+    def _initialize_canvas_width(self):
+        """Initialize canvas width to prevent horizontal scrolling"""
+        try:
+            # Set the scrollable frame width to match the available canvas width
+            canvas_width = self.canvas.winfo_width()
+            if canvas_width > 1:
+                self.canvas.itemconfig(self.canvas_window, width=canvas_width)
+            self.update_scroll_region()
+        except Exception as e:
+            print(f"Canvas width initialization error: {e}")
+
 def main():
     root = tk.Tk()
     app = BatteryControlGUI(root)
