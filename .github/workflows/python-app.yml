@@ -1,20 +1,30 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+# ASUS Battery Limiter CI/CD Pipeline
+# Builds and tests the application, creates .deb packages for releases
+# Supports automatic versioning and Ubuntu native updater integration
 
-name: Python application
+name: Build and Package
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
+    tags: [ "v*" ]
   pull_request:
     branches: [ "main" ]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.1)'
+        required: false
+        default: ''
 
 permissions:
-  contents: read
+  contents: write
+  packages: write
 
 jobs:
-  build:
-
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,17 +33,210 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
-    - name: Install dependencies
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-appindicator3-0.1 gir1.2-notify-0.7 python3-tk
+    - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
         pip install flake8 pytest
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=debian-package
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=debian-package
+    - name: Test scripts syntax
       run: |
-        pytest
+        # Test shell scripts syntax
+        bash -n battery-cli
+        bash -n battery-limit
+        bash -n set-charge-limit.sh
+        bash -n install.sh
+        bash -n uninstall.sh
+        bash -n build-deb.sh
+        # Test Python scripts syntax
+        python3 -m py_compile battery-gui
+        python3 -m py_compile battery-indicator
+    - name: Test CLI functionality
+      run: |
+        # Test CLI help output
+        ./battery-cli --help
+        # Test battery limit script
+        ./battery-limit --help
+
+  get-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag-exists: ${{ steps.check-tag.outputs.exists }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Get version
+      id: version
+      run: |
+        if [ "${{ github.event.inputs.version }}" != "" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        elif [[ $GITHUB_REF == refs/tags/* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+        else
+          # Get version from control file
+          VERSION=$(grep "^Version:" debian-package/DEBIAN/control | cut -d' ' -f2)
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Detected version: $VERSION"
+    - name: Check if tag exists
+      id: check-tag
+      run: |
+        if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+
+  build-deb:
+    needs: [test, get-version]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y dpkg-dev fakeroot devscripts
+    - name: Update version in files
+      run: |
+        VERSION=${{ needs.get-version.outputs.version }}
+        echo "Building version: $VERSION"
+        # Update version in control file
+        sed -i "s/^Version:.*/Version: $VERSION/" debian-package/DEBIAN/control
+        # Update version in scripts
+        sed -i "s/VERSION=\".*\"/VERSION=\"$VERSION\"/" battery-cli battery-limit battery-gui battery-indicator
+    - name: Build .deb package
+      run: |
+        chmod +x build-deb.sh
+        ./build-deb.sh
+        # Rename the package to include the version
+        VERSION=${{ needs.get-version.outputs.version }}
+        mv asus-battery-limiter_*.deb asus-battery-limiter_${VERSION}_all.deb
+    - name: Test .deb package
+      run: |
+        VERSION=${{ needs.get-version.outputs.version }}
+        # Check package contents
+        dpkg-deb -c asus-battery-limiter_${VERSION}_all.deb
+        # Check package info
+        dpkg-deb -I asus-battery-limiter_${VERSION}_all.deb
+    - name: Upload .deb artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: deb-package
+        path: asus-battery-limiter_*.deb
+    - name: Upload .deb package to release
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+        asset_name: asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+        asset_content_type: application/vnd.debian.binary-package
+
+  create-release:
+    needs: [test, get-version, build-deb]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && needs.get-version.outputs.tag-exists == 'false'
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Download .deb package
+      uses: actions/download-artifact@v3
+      with:
+        name: deb-package
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ needs.get-version.outputs.version }}
+        release_name: Release v${{ needs.get-version.outputs.version }}
+        body: |
+          ## ASUS Battery Limiter v${{ needs.get-version.outputs.version }}
+
+          ### Installation
+
+          **Ubuntu/Debian (Recommended):**
+          ```bash
+          wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.get-version.outputs.version }}/asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+          sudo dpkg -i asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+          sudo apt-get install -f  # Install any missing dependencies
+          ```
+
+          **Manual Installation:**
+          ```bash
+          git clone https://github.com/${{ github.repository }}.git
+          cd Battery-Limter
+          chmod +x install.sh
+          sudo ./install.sh
+          ```
+
+          ### Features
+          - Professional CLI and GUI interface
+          - System tray indicator with quick presets
+          - Automatic update checking
+          - Native Ubuntu package management integration
+          - Professional installation and uninstallation
+
+          ### System Requirements
+          - Ubuntu 20.04+ or Debian 11+
+          - ASUS laptop with supported battery charging control
+          - Python 3.8+
+          - GTK 3.0+
+
+          For detailed installation instructions, see [INSTALL.md](https://github.com/${{ github.repository }}/blob/main/INSTALL.md).
+        draft: false
+        prerelease: false
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+        asset_name: asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+        asset_content_type: application/vnd.debian.binary-package
+
+  publish-ppa:
+    needs: [test, get-version, build-deb]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.repository_owner == 'yourusername'  # Replace with your username
+    # This job is disabled by default - enable it by setting up PPA secrets
+    # See PUBLISHING.md for setup instructions
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup PPA publishing
+      if: false  # Enable this when PPA is configured
+      run: |
+        # Install PPA publishing tools
+        sudo apt-get update
+        sudo apt-get install -y devscripts dput-ng
+        # Import GPG key (store as secret)
+        echo "${{ secrets.PPA_GPG_KEY }}" | gpg --import
+        # Configure dput for PPA
+        echo "[ppa]" > ~/.dput.cf
+        echo "fqdn = ppa.launchpad.net" >> ~/.dput.cf
+        echo "method = ftp" >> ~/.dput.cf
+        echo "incoming = ~${{ secrets.PPA_USER }}/ubuntu/ppa/" >> ~/.dput.cf
+        echo "login = anonymous" >> ~/.dput.cf
+    - name: Build source package for PPA
+      if: false  # Enable this when PPA is configured
+      run: |
+        # Create source package for PPA
+        VERSION=${{ needs.get-version.outputs.version }}
+        # This would require proper debian/ directory structure for PPA
+        # See PUBLISHING.md for detailed setup
+        echo "PPA publishing not yet configured"

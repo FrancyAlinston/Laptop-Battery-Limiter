@@ -1,13 +1,8 @@
-asus-battery-limiter (1.0.0) stable; urgency=low
+asus-battery-limiter (2.0.0) stable; urgency=low
 
-  * Initial release
-  * Interactive CLI with colored output and presets
-  * Modern GUI application with dark theme
-  * System tray indicator for quick access
-  * Battery status monitoring
-  * Support for 50-100% charge limits
-  * Quick preset options (60%, 70%, 80%, 90%, 100%)
-  * Proper privilege handling with PolicyKit
-  * Auto-start on login
+  * Version 2.0.0 release
+  * See GitHub releases for detailed changelog
 
- -- FrancyAlinston <francyalen@gmail.com>  Fri, 04 Jul 2025 12:00:00 +0000
+ -- FrancyAlinston <francyalen@gmail.com>  Mon, 07 Jul 2025 18:20:00 +0100
+
+

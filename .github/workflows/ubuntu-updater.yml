@@ -1,0 +1,298 @@
+# Ubuntu Native Updater Integration Workflow
+# Automatically publishes releases to enable Ubuntu's native update system
+# Supports PPA, Snap Store, and custom APT repository integration
+
+name: Ubuntu Native Updater
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      publish_target:
+        description: 'Publishing target'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - 'all'
+          - 'ppa'
+          - 'snap'
+          - 'apt-repo'
+
+env:
+  PACKAGE_NAME: asus-battery-limiter
+  MAINTAINER_NAME: "ASUS Battery Limiter Team"
+  MAINTAINER_EMAIL: "support@example.com"  # Replace with your email
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      changelog: ${{ steps.changelog.outputs.changelog }}
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for changelog
+    - name: Get version
+      id: version
+      run: |
+        VERSION=$(grep "^Version:" debian-package/DEBIAN/control | cut -d' ' -f2)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Release version: $VERSION"
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Generate changelog from git commits since last tag
+        LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        if [ -n "$LAST_TAG" ]; then
+          CHANGELOG=$(git log --pretty=format="  * %s" $LAST_TAG..HEAD)
+        else
+          CHANGELOG=$(git log --pretty=format="  * %s" HEAD~10..HEAD)
+        fi
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+  publish-ppa:
+    needs: prepare-release
+    runs-on: ubuntu-latest
+    if: (github.event.inputs.publish_target == 'ppa' || github.event.inputs.publish_target == 'all' || github.event_name == 'release') && vars.ENABLE_PPA == 'true'
+    
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install PPA tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y devscripts dput-ng ubuntu-dev-tools
+    - name: Setup GPG
+      env:
+        GPG_PRIVATE_KEY: ${{ secrets.PPA_GPG_PRIVATE_KEY }}
+        GPG_PASSPHRASE: ${{ secrets.PPA_GPG_PASSPHRASE }}
+      run: |
+        echo "$GPG_PRIVATE_KEY" | base64 -d | gpg --import --batch --yes
+        echo "use-agent" >> ~/.gnupg/gpg.conf
+        echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+        echo "$GPG_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 --quick-set-primary-userid $(gpg --list-secret-keys --with-colons | awk -F: '/uid:/ {print $10; exit}')
+    - name: Create PPA source package
+      env:
+        VERSION: ${{ needs.prepare-release.outputs.version }}
+        CHANGELOG: ${{ needs.prepare-release.outputs.changelog }}
+      run: |
+        # Create proper debian package structure for PPA
+        mkdir -p ppa-build/$PACKAGE_NAME-$VERSION
+        cp -r . ppa-build/$PACKAGE_NAME-$VERSION/
+        cd ppa-build/$PACKAGE_NAME-$VERSION
+        
+        # Create debian directory structure
+        mkdir -p debian/source
+        echo "3.0 (native)" > debian/source/format
+        
+        # Create control file for PPA
+        cat > debian/control << EOF
+        Source: $PACKAGE_NAME
+        Section: utils
+        Priority: optional
+        Maintainer: $MAINTAINER_NAME <$MAINTAINER_EMAIL>
+        Build-Depends: debhelper-compat (= 13), python3, python3-gi
+        Standards-Version: 4.6.0
+        Homepage: https://github.com/${{ github.repository }}
+        Vcs-Git: https://github.com/${{ github.repository }}.git
+        Vcs-Browser: https://github.com/${{ github.repository }}
+        
+        Package: $PACKAGE_NAME
+        Architecture: all
+        Depends: \${misc:Depends}, python3, python3-gi, python3-gi-cairo, gir1.2-gtk-3.0, gir1.2-appindicator3-0.1, gir1.2-notify-0.7, python3-tk, sudo
+        Description: Battery charge limiter for ASUS laptops
+         Professional battery charge limiter for ASUS laptops running Linux.
+         Features a modern GUI, CLI interface, and system tray integration
+         for managing battery charging limits to extend battery lifespan.
+         .
+         This package provides:
+          - Command-line interface for battery management
+          - Modern GTK GUI application
+          - System tray indicator with quick presets
+          - Automatic update checking
+          - Professional installation and configuration
+        EOF
+        
+        # Create changelog
+        cat > debian/changelog << EOF
+        $PACKAGE_NAME ($VERSION-1ubuntu1) jammy; urgency=medium
+        
+        $CHANGELOG
+        
+         -- $MAINTAINER_NAME <$MAINTAINER_EMAIL>  $(date -R)
+        EOF
+        
+        # Create rules file
+        cat > debian/rules << 'EOF'
+        #!/usr/bin/make -f
+        %:
+        	dh $@
+        
+        override_dh_auto_install:
+        	dh_auto_install
+        	# Install scripts
+        	install -D -m 755 battery-cli debian/$PACKAGE_NAME/usr/bin/battery-cli
+        	install -D -m 755 battery-limit debian/$PACKAGE_NAME/usr/bin/battery-limit
+        	install -D -m 755 battery-gui debian/$PACKAGE_NAME/usr/bin/battery-gui
+        	install -D -m 755 battery-indicator debian/$PACKAGE_NAME/usr/bin/battery-indicator
+        	install -D -m 755 set-charge-limit.sh debian/$PACKAGE_NAME/usr/lib/$PACKAGE_NAME/set-charge-limit.sh
+        	# Install configuration files
+        	install -D -m 440 debian-package/etc/sudoers.d/$PACKAGE_NAME debian/$PACKAGE_NAME/etc/sudoers.d/$PACKAGE_NAME
+        	install -D -m 644 debian-package/etc/xdg/autostart/$PACKAGE_NAME.desktop debian/$PACKAGE_NAME/etc/xdg/autostart/$PACKAGE_NAME.desktop
+        	# Install documentation
+        	install -D -m 644 README.md debian/$PACKAGE_NAME/usr/share/doc/$PACKAGE_NAME/README.md
+        	install -D -m 644 INSTALL.md debian/$PACKAGE_NAME/usr/share/doc/$PACKAGE_NAME/INSTALL.md
+        EOF
+        chmod +x debian/rules
+        
+        # Create copyright file
+        cat > debian/copyright << EOF
+        Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+        Upstream-Name: $PACKAGE_NAME
+        Source: https://github.com/${{ github.repository }}
+        
+        Files: *
+        Copyright: $(date +%Y) $MAINTAINER_NAME
+        License: MIT
+        
+        License: MIT
+         Permission is hereby granted, free of charge, to any person obtaining a
+         copy of this software and associated documentation files (the "Software"),
+         to deal in the Software without restriction, including without limitation
+         the rights to use, copy, modify, merge, publish, distribute, sublicense,
+         and/or sell copies of the Software, and to permit persons to whom the
+         Software is furnished to do so, subject to the following conditions:
+         .
+         The above copyright notice and this permission notice shall be included
+         in all copies or substantial portions of the Software.
+         .
+         THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+         OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+         FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+         THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+         OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+         ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+         OTHER DEALINGS IN THE SOFTWARE.
+        EOF
+        
+        # Build source package
+        debuild -S -sa -k${{ secrets.PPA_GPG_KEY_ID }}
+        
+        # Upload to PPA
+        cd ..
+        dput ppa:${{ secrets.PPA_USER }}/${{ secrets.PPA_NAME }} ${PACKAGE_NAME}_${VERSION}-1ubuntu1_source.changes
+
+  publish-snap:
+    needs: prepare-release
+    runs-on: ubuntu-latest
+    if: (github.event.inputs.publish_target == 'snap' || github.event.inputs.publish_target == 'all' || github.event_name == 'release') && vars.ENABLE_SNAP == 'true'
+    
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install snapcraft
+      run: |
+        sudo snap install snapcraft --classic
+    - name: Update snapcraft version
+      env:
+        VERSION: ${{ needs.prepare-release.outputs.version }}
+      run: |
+        sed -i "s/^version:.*/version: '$VERSION'/" snapcraft.yaml
+    - name: Build snap
+      run: |
+        snapcraft
+    - name: Login to Snap Store
+      env:
+        SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
+      run: |
+        echo "$SNAPCRAFT_STORE_CREDENTIALS" | snapcraft login --with -
+    - name: Publish to Snap Store
+      run: |
+        snapcraft upload *.snap --release=stable
+
+  update-apt-repo:
+    needs: prepare-release
+    runs-on: ubuntu-latest
+    if: (github.event.inputs.publish_target == 'apt-repo' || github.event.inputs.publish_target == 'all' || github.event_name == 'release') && vars.ENABLE_APT_REPO == 'true'
+    
+    steps:
+    - uses: actions/checkout@v4
+    - name: Download built .deb package
+      uses: actions/download-artifact@v3
+      with:
+        name: deb-package
+        path: ./packages
+    - name: Setup APT repository
+      env:
+        APT_REPO_KEY: ${{ secrets.APT_REPO_GPG_KEY }}
+        APT_REPO_PASSPHRASE: ${{ secrets.APT_REPO_GPG_PASSPHRASE }}
+      run: |
+        # Install repository management tools
+        sudo apt-get update
+        sudo apt-get install -y reprepro gnupg
+        
+        # Setup GPG for signing
+        echo "$APT_REPO_KEY" | base64 -d | gpg --import --batch --yes
+        
+        # Create repository structure
+        mkdir -p apt-repo/conf
+        cat > apt-repo/conf/distributions << EOF
+        Codename: jammy
+        Components: main
+        Architectures: all amd64
+        SignWith: ${{ secrets.APT_REPO_GPG_KEY_ID }}
+        Description: ASUS Battery Limiter APT Repository
+        
+        Codename: focal
+        Components: main
+        Architectures: all amd64
+        SignWith: ${{ secrets.APT_REPO_GPG_KEY_ID }}
+        Description: ASUS Battery Limiter APT Repository
+        EOF
+        
+        # Add package to repository
+        cd apt-repo
+        for deb in ../packages/*.deb; do
+          reprepro includedeb jammy "$deb"
+          reprepro includedeb focal "$deb"
+        done
+        
+        # Upload to repository hosting (customize for your hosting solution)
+        # This example assumes you have repository hosting set up
+        echo "Repository updated with new package"
+
+  notify-update-servers:
+    needs: [prepare-release, publish-ppa, publish-snap, update-apt-repo]
+    runs-on: ubuntu-latest
+    if: always() && (needs.publish-ppa.result == 'success' || needs.publish-snap.result == 'success' || needs.update-apt-repo.result == 'success')
+    
+    steps:
+    - name: Notify update servers
+      run: |
+        VERSION=${{ needs.prepare-release.outputs.version }}
+        echo "✅ Successfully published version $VERSION to Ubuntu native updaters"
+        
+        # Create update notification file for the application to check
+        cat > update-notification.json << EOF
+        {
+          "version": "$VERSION",
+          "published": "$(date -Iseconds)",
+          "channels": {
+            "ppa": ${{ needs.publish-ppa.result == 'success' && 'true' || 'false' }},
+            "snap": ${{ needs.publish-snap.result == 'success' && 'true' || 'false' }},
+            "apt": ${{ needs.update-apt-repo.result == 'success' && 'true' || 'false' }}
+          },
+          "download_url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/asus-battery-limiter_${VERSION}_all.deb",
+          "release_notes": "${{ github.event.release.html_url || '' }}"
+        }
+        EOF
+        
+        echo "Update notification:"
+        cat update-notification.json
+        
+        # You can upload this to your update server or GitHub releases
+        # This enables the app to check for native updater availability

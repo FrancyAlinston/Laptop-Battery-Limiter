@@ -35,7 +35,7 @@ class BatteryLimitIndicator:
         self.status_file = "/sys/class/power_supply/BAT0/status"
         
         # Version info for updates
-        self.current_version = "1.0.0"
+        self.current_version = "2.0.0"
         self.github_repo = "FrancyAlinston/Laptop-Battery-Limiter"
         
         # Update indicator
@@ -183,7 +183,15 @@ class BatteryLimitIndicator:
     def check_for_updates(self, widget):
         def check_updates():
             try:
-                # GitHub API URL for latest release
+                # First, check if we're installed via package manager
+                update_available, update_method = self.check_native_updates()
+                
+                if update_available:
+                    # Native update available
+                    GObject.idle_add(self.show_native_update_dialog, update_method)
+                    return
+                
+                # Fallback to GitHub API check
                 api_url = f"https://api.github.com/repos/{self.github_repo}/releases/latest"
                 
                 # Make request to GitHub API
@@ -197,6 +205,116 @@ class BatteryLimitIndicator:
                         # Compare versions
                         if self.compare_versions(latest_version, self.current_version):
                             # New version available
+                            GObject.idle_add(self.show_update_dialog, latest_version, release_url, release_notes)
+                        else:
+                            # Up to date
+                            GObject.idle_add(self.show_notification, 
+                                           "Up to Date", 
+                                           f"You have the latest version ({self.current_version})")
+                    else:
+                        raise Exception("Failed to fetch release information")
+                        
+            except urllib.error.URLError as e:
+                GObject.idle_add(self.show_notification, 
+                               "Update Check Failed", 
+                               "No internet connection or GitHub unavailable")
+            except Exception as e:
+                GObject.idle_add(self.show_notification, 
+                               "Update Check Failed", 
+                               f"Error: {str(e)}")
+        
+        # Show checking notification
+        self.show_notification("Checking for Updates", "Checking package manager and GitHub...")
+        
+        # Run check in background thread
+        thread = threading.Thread(target=check_updates)
+        thread.daemon = True
+        thread.start()
+    
+    def check_native_updates(self):
+        """Check for updates via native package managers"""
+        try:
+            # Check if installed via APT (Ubuntu/Debian)
+            result = subprocess.run(
+                ["dpkg", "-l", "asus-battery-limiter"],
+                capture_output=True, text=True, timeout=5
+            )
+            
+            if result.returncode == 0:
+                # Package is installed via APT
+                # Check for updates
+                apt_result = subprocess.run(
+                    ["apt", "list", "--upgradable", "asus-battery-limiter"],
+                    capture_output=True, text=True, timeout=10
+                )
+                
+                if "asus-battery-limiter" in apt_result.stdout and "upgradable" in apt_result.stdout:
+                    return True, "apt"
+            
+            # Check if installed via Snap
+            snap_result = subprocess.run(
+                ["snap", "list", "asus-battery-limiter"],
+                capture_output=True, text=True, timeout=5
+            )
+            
+            if snap_result.returncode == 0:
+                # Check for snap updates
+                snap_refresh = subprocess.run(
+                    ["snap", "refresh", "--list"],
+                    capture_output=True, text=True, timeout=10
+                )
+                
+                if "asus-battery-limiter" in snap_refresh.stdout:
+                    return True, "snap"
+            
+            return False, None
+            
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError):
+            return False, None
+    
+    def show_native_update_dialog(self, update_method):
+        """Show native update available dialog"""
+        if update_method == "apt":
+            title = "Ubuntu System Update Available"
+            message = ("A new version of ASUS Battery Limiter is available through the Ubuntu package manager.\n\n"
+                      "You can update using:\n"
+                      "• Software Updater (recommended)\n"
+                      "• Terminal: sudo apt update && sudo apt upgrade asus-battery-limiter\n\n"
+                      "Would you like to open Software Updater?")
+            command = ["gnome-software", "--mode=updates"]
+        elif update_method == "snap":
+            title = "Snap Store Update Available"
+            message = ("A new version of ASUS Battery Limiter is available through the Snap Store.\n\n"
+                      "You can update using:\n"
+                      "• Snap Store app (recommended)\n"
+                      "• Terminal: sudo snap refresh asus-battery-limiter\n\n"
+                      "Would you like to open Snap Store?")
+            command = ["snap-store"]
+        else:
+            return
+        
+        dialog = Gtk.MessageDialog(
+            parent=None,
+            flags=0,
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text=title
+        )
+        
+        dialog.format_secondary_text(message)
+        
+        response = dialog.run()
+        if response == Gtk.ResponseType.YES:
+            try:
+                subprocess.Popen(command)
+            except FileNotFoundError:
+                # Fallback to terminal command
+                if update_method == "apt":
+                    subprocess.Popen(["gnome-terminal", "--", "sudo", "apt", "update", "&&", "sudo", "apt", "upgrade", "asus-battery-limiter"])
+                elif update_method == "snap":
+                    subprocess.Popen(["gnome-terminal", "--", "sudo", "snap", "refresh", "asus-battery-limiter"])
+        
+        dialog.destroy()
                             GObject.idle_add(self.show_update_dialog, latest_version, release_url, release_notes)
                         else:
                             # Up to date

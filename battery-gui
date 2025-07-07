@@ -82,7 +82,7 @@ class BatteryControlGUI:
         self.status_file = "/sys/class/power_supply/BAT0/status"
         
         # Version info for updates
-        self.current_version = "1.0.0"
+        self.current_version = "2.0.0"
         self.github_repo = "FrancyAlinston/Laptop-Battery-Limiter"
 
     def create_widgets(self):
