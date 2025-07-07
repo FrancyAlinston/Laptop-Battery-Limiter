@@ -118,10 +118,10 @@ jobs:
       run: |
         VERSION=${{ needs.get-version.outputs.version }}
         BRANCH_NAME=${GITHUB_REF#refs/heads/}
-        
+
         echo "Building version: $VERSION"
         echo "Branch: $BRANCH_NAME"
-        
+
         # Determine release type based on branch
         if [ "$BRANCH_NAME" = "stable" ]; then
           RELEASE_TYPE="stable"
@@ -132,10 +132,10 @@ jobs:
           # For tags or manual dispatch, default to stable
           RELEASE_TYPE="stable"
         fi
-        
+
         echo "Release type: $RELEASE_TYPE"
         echo "Final version: $VERSION"
-        
+
         # Update version in control file
         sed -i "s/^Version:.*/Version: $VERSION/" debian-package/DEBIAN/control
         # Update version in scripts
@@ -205,7 +205,7 @@ jobs:
           **Manual Installation:**
           ```bash
           git clone https://github.com/${{ github.repository }}.git
-          cd Laptop-Battery-Limiter
+          cd Battery-Limter
           chmod +x install.sh
           sudo ./install.sh
           ```
@@ -223,7 +223,7 @@ jobs:
           - Python 3.8+
           - GTK 3.0+
 
-          For detailed installation instructions, see [INSTALL.md](https://github.com/${{ github.repository }}/blob/stable/INSTALL.md).
+          For detailed installation instructions, see [INSTALL.md](https://github.com/${{ github.repository }}/blob/main/INSTALL.md).
         draft: false
         prerelease: false
     - name: Upload Release Asset
