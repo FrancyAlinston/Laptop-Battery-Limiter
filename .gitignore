@@ -1,6 +1,7 @@
 # Build artifacts
 *.deb
 asus-battery-limiter_*
+universal-battery-limiter_*
 build/
 dist/
 *.tar.gz
