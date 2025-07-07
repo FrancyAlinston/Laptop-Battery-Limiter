@@ -91,6 +91,9 @@ Thumbs.db
 *.swp
 *.swo
 *~
+*.code-workspace
+Battery-Limter.code-workspace
+*.workspace
 
 # Logs
 *.log
