@@ -25,8 +25,9 @@ class BatteryControlGUI:
     def setup_window(self):
         """Configure the main window"""
         self.root.title("Universal Battery Control Center")
-        self.root.geometry("450x600")
-        self.root.resizable(False, False)
+        self.root.geometry("450x650")  # Slightly taller to accommodate scrolling
+        self.root.resizable(True, True)  # Allow resizing for better scroll experience
+        self.root.minsize(400, 500)     # Set minimum size
 
         # Detect OS theme
         self.detect_os_theme()
@@ -624,8 +625,30 @@ class BatteryControlGUI:
         self.load_settings()
 
     def create_widgets(self):
-        """Create all GUI widgets"""
-        main_frame = ttk.Frame(self.root, style='Dark.TFrame')
+        """Create all GUI widgets with scrollable interface"""
+        # Create a canvas and scrollbar for scrolling
+        self.canvas = tk.Canvas(self.root, bg=self.bg_color, highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = ttk.Frame(self.canvas, style='Dark.TFrame')
+
+        # Configure scrolling
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        )
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Pack canvas and scrollbar
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
+        # Bind mouse wheel events for scrolling
+        self.bind_mouse_wheel()
+
+        # Main content frame
+        main_frame = ttk.Frame(self.scrollable_frame, style='Dark.TFrame')
         main_frame.pack(fill='both', expand=True, padx=15, pady=15)
 
         # Title
@@ -1221,9 +1244,17 @@ class BatteryControlGUI:
 
             # Update window background
             self.root.configure(bg=self.bg_color)
+            
+            # Update canvas background if it exists
+            if hasattr(self, 'canvas'):
+                self.canvas.configure(bg=self.bg_color)
 
             # Force a refresh of all widgets
             self.root.update_idletasks()
+            
+            # Update scroll region
+            if hasattr(self, 'canvas'):
+                self.update_scroll_region()
 
             print("Theme refreshed successfully")
 
@@ -1249,6 +1280,115 @@ class BatteryControlGUI:
 
         # Schedule next check in 10 seconds
         self.root.after(10000, self.check_theme_change)
+
+    def bind_mouse_wheel(self):
+        """Bind mouse wheel events for scrolling"""
+        # Bind mouse wheel to canvas
+        self.canvas.bind("<MouseWheel>", self._on_mousewheel)  # Windows and MacOS
+        self.canvas.bind("<Button-4>", self._on_mousewheel)    # Linux scroll up
+        self.canvas.bind("<Button-5>", self._on_mousewheel)    # Linux scroll down
+        
+        # Also bind to the root window to catch events anywhere
+        self.root.bind("<MouseWheel>", self._on_mousewheel)
+        self.root.bind("<Button-4>", self._on_mousewheel)
+        self.root.bind("<Button-5>", self._on_mousewheel)
+        
+        # Bind keyboard scrolling
+        self.root.bind("<Up>", self._on_key_scroll)
+        self.root.bind("<Down>", self._on_key_scroll)
+        self.root.bind("<Page_Up>", self._on_key_scroll)
+        self.root.bind("<Page_Down>", self._on_key_scroll)
+        self.root.bind("<Home>", self._on_key_scroll)
+        self.root.bind("<End>", self._on_key_scroll)
+        
+        # Bind focus events to ensure scrolling works
+        self.canvas.bind("<Enter>", self._on_enter)
+        self.canvas.bind("<Leave>", self._on_leave)
+        
+        # Make canvas focusable
+        self.canvas.focus_set()
+
+    def _on_key_scroll(self, event):
+        """Handle keyboard scrolling"""
+        try:
+            if not self.canvas.winfo_exists():
+                return
+                
+            # Get scroll parameters
+            total_height = self.canvas.bbox("all")
+            if not total_height or len(total_height) < 4:
+                return
+                
+            content_height = total_height[3] - total_height[1]
+            visible_height = self.canvas.winfo_height()
+            
+            # Only scroll if content is larger than visible area
+            if content_height <= visible_height:
+                return
+            
+            # Handle different key types
+            if event.keysym == "Up":
+                self.canvas.yview_scroll(-1, "units")
+            elif event.keysym == "Down":
+                self.canvas.yview_scroll(1, "units")
+            elif event.keysym == "Page_Up":
+                self.canvas.yview_scroll(-1, "pages")
+            elif event.keysym == "Page_Down":
+                self.canvas.yview_scroll(1, "pages")
+            elif event.keysym == "Home":
+                self.canvas.yview_moveto(0)
+            elif event.keysym == "End":
+                self.canvas.yview_moveto(1)
+                
+        except Exception as e:
+            print(f"Keyboard scroll error: {e}")
+
+    def _on_mousewheel(self, event):
+        """Handle mouse wheel scrolling"""
+        try:
+            # Determine scroll direction and amount
+            if event.num == 4 or event.delta > 0:  # Scroll up
+                scroll_amount = -1
+            elif event.num == 5 or event.delta < 0:  # Scroll down
+                scroll_amount = 1
+            else:
+                scroll_amount = 0
+            
+            # Only scroll if there's content to scroll
+            if self.canvas.winfo_exists():
+                # Get the current scroll region
+                scroll_top = self.canvas.canvasy(0)
+                scroll_bottom = self.canvas.canvasy(self.canvas.winfo_height())
+                total_height = self.canvas.bbox("all")
+                
+                if total_height and len(total_height) >= 4:
+                    content_height = total_height[3] - total_height[1]
+                    visible_height = self.canvas.winfo_height()
+                    
+                    # Only scroll if content is larger than visible area
+                    if content_height > visible_height:
+                        self.canvas.yview_scroll(scroll_amount, "units")
+                        
+        except Exception as e:
+            print(f"Mouse wheel scroll error: {e}")
+
+    def _on_enter(self, event):
+        """Handle mouse entering canvas"""
+        self.canvas.focus_set()
+
+    def _on_leave(self, event):
+        """Handle mouse leaving canvas"""
+        pass
+
+    def update_scroll_region(self):
+        """Update the scroll region when content changes"""
+        try:
+            self.root.update_idletasks()
+            self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        except Exception as e:
+            print(f"Scroll region update error: {e}")
+
+    # ...existing code...
 def main():
     root = tk.Tk()
     app = BatteryControlGUI(root)
