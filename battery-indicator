@@ -2,28 +2,69 @@
 
 import sys
 import os
+from datetime import datetime
+
+# Add the project directory to Python path for imports
+script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, script_dir)
+
+# Import centralized logger
+try:
+    from battery_logger import get_logger
+    logger = get_logger('battery-indicator')
+    logger.info("Using centralized logging system")
+except ImportError as e:
+    # Fallback to basic logging if centralized logger is not available
+    import logging
+    LOG_DIR = os.path.expanduser("~/.local/share/battery-limiter/logs")
+    os.makedirs(LOG_DIR, exist_ok=True)
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='[%(asctime)s] [%(levelname)s] %(message)s',
+        handlers=[
+            logging.FileHandler(os.path.join(LOG_DIR, 'indicator.log')),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+    
+    logger = logging.getLogger('battery-indicator')
+    logger.warning(f"Centralized logger not available, using fallback: {e}")
+    logger.info("=== BATTERY INDICATOR STARTUP ===")
+    logger.info(f"Python version: {sys.version}")
+    logger.info(f"Python executable: {sys.executable}")
+    logger.info(f"Desktop environment: {os.environ.get('XDG_CURRENT_DESKTOP', 'Unknown')}")
+    logger.info(f"Session type: {os.environ.get('XDG_SESSION_TYPE', 'Unknown')}")
+    logger.info(f"Display: {os.environ.get('DISPLAY', 'Unknown')}")
+    logger.info(f"User: {os.environ.get('USER', 'Unknown')}")
 
 # Handle library conflicts with snap packages
 if 'SNAP' in os.environ:
+    logger.warning("Detected snap environment, cleaning up...")
     # Clear problematic environment variables when running in snap environment
-    for var in ['LD_LIBRARY_PATH', 'PYTHONPATH']:
+    snap_vars = [var for var in os.environ.keys() if var.startswith('SNAP')]
+    for var in snap_vars + ['LD_LIBRARY_PATH', 'PYTHONPATH']:
         if var in os.environ:
+            logger.info(f"Removing environment variable: {var}")
             del os.environ[var]
     
     # Add system library paths
     sys.path.insert(0, '/usr/lib/python3/dist-packages')
     sys.path.insert(0, '/usr/local/lib/python3/dist-packages')
+    logger.info("Environment cleaned for snap compatibility")
 
 try:
+    logger.info("Importing GTK libraries...")
     import gi
     gi.require_version('Gtk', '3.0')
     gi.require_version('AppIndicator3', '0.1')
     gi.require_version('Notify', '0.7')
 
     from gi.repository import Gtk, AppIndicator3, GObject, Notify
+    logger.info("GTK libraries imported successfully")
 except ImportError as e:
-    print(f"❌ Error importing GTK libraries: {e}")
-    print("💡 Try installing: sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-appindicator3-0.1 gir1.2-notify-0.7")
+    logger.error(f"Error importing GTK libraries: {e}")
+    logger.error("Try installing: sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-appindicator3-0.1 gir1.2-notify-0.7")
     sys.exit(1)
 
 import subprocess
@@ -37,15 +78,15 @@ import urllib.error
 try:
     from enhanced_animated_icons import EnhancedAnimatedIconManager
     ANIMATIONS_AVAILABLE = True
-    print("✨ Enhanced animated icons available")
+    logger.info("✨ Enhanced animated icons available")
 except ImportError:
     try:
         from animated_icons import AnimatedIconManager as EnhancedAnimatedIconManager
         ANIMATIONS_AVAILABLE = True
-        print("📱 Basic animated icons available")
+        logger.info("📱 Basic animated icons available")
     except ImportError:
         ANIMATIONS_AVAILABLE = False
-        print("⚠️ Animated icons not available, using static icons")
+        logger.warning("⚠️ Animated icons not available, using static icons")
 
 class BatteryLimitIndicator:
     def __init__(self):
@@ -65,10 +106,10 @@ class BatteryLimitIndicator:
         # Initialize enhanced animated icon manager
         if ANIMATIONS_AVAILABLE:
             self.icon_manager = EnhancedAnimatedIconManager(self.indicator)
-            print("✅ Enhanced animated icons enabled")
+            logger.info("✅ Enhanced animated icons enabled")
         else:
             self.icon_manager = None
-            print("ℹ️ Using static system icons")
+            logger.info("ℹ️ Using static system icons")
 
         # Battery files
         self.threshold_file = "/sys/class/power_supply/BAT0/charge_control_end_threshold"
@@ -520,7 +561,7 @@ class BatteryLimitIndicator:
             with open(config_file, 'w') as f:
                 f.write(f"release_channel={self.release_channel}\n")
         except Exception as e:
-            print(f"Failed to save settings: {e}")
+            logger.error(f"Failed to save settings: {e}")
 
     def load_settings(self):
         """Load settings from file"""
@@ -533,7 +574,7 @@ class BatteryLimitIndicator:
                         if line.startswith("release_channel="):
                             self.release_channel = line.split("=")[1].strip()
         except Exception as e:
-            print(f"Failed to load settings: {e}")
+            logger.error(f"Failed to load settings: {e}")
 
     def about_dialog(self, widget):
         dialog = Gtk.AboutDialog()

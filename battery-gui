@@ -1,16 +1,56 @@
 #!/usr/bin/env python3
 
-import tkinter as tk
-from tkinter import ttk, messagebox
-import subprocess
+import sys
 import os
+from datetime import datetime
+
+# Add the project directory to Python path for imports
+script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, script_dir)
+
+# Import centralized logger
+try:
+    from battery_logger import get_logger
+    logger = get_logger('battery-gui')
+    logger.info("Using centralized logging system")
+except ImportError as e:
+    # Fallback to basic logging if centralized logger is not available
+    import logging
+    LOG_DIR = os.path.expanduser("~/.local/share/battery-limiter/logs")
+    os.makedirs(LOG_DIR, exist_ok=True)
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='[%(asctime)s] [%(levelname)s] %(message)s',
+        handlers=[
+            logging.FileHandler(os.path.join(LOG_DIR, 'gui.log')),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+    
+    logger = logging.getLogger('battery-gui')
+    logger.warning(f"Centralized logger not available, using fallback: {e}")
+    logger.info("=== BATTERY GUI STARTUP ===")
+    logger.info(f"Python version: {sys.version}")
+    logger.info(f"Desktop environment: {os.environ.get('XDG_CURRENT_DESKTOP', 'Unknown')}")
+    logger.info(f"Session type: {os.environ.get('XDG_SESSION_TYPE', 'Unknown')}")
+    logger.info(f"Display: {os.environ.get('DISPLAY', 'Unknown')}")
+
+try:
+    logger.info("Importing tkinter...")
+    import tkinter as tk
+    from tkinter import ttk, messagebox
+    logger.info("Tkinter imported successfully")
+except ImportError as e:
+    logger.error(f"Error importing tkinter: {e}")
+    sys.exit(1)
+
+import subprocess
 import threading
 import time
 import json
 import urllib.request
 import urllib.error
-import datetime
-import webbrowser
 from pathlib import Path
 
 class BatteryControlGUI:
@@ -51,7 +91,7 @@ class BatteryControlGUI:
             desktop_session = os.environ.get('XDG_SESSION_DESKTOP', '').lower()
             window_manager = os.environ.get('WINDOW_MANAGER', '').lower()
 
-            print(f"Desktop detection - Environment: {desktop_env}, Session: {desktop_session}, WM: {window_manager}")
+            logger.info(f"Desktop detection - Environment: {desktop_env}, Session: {desktop_session}, WM: {window_manager}")
 
             # === GTK-based Desktop Environments ===
 
@@ -65,11 +105,11 @@ class BatteryControlGUI:
                         color_scheme = result.stdout.strip().strip("'\"").lower()
                         if 'dark' in color_scheme or 'prefer-dark' in color_scheme:
                             is_dark_theme = True
-                            print(f"Detected dark theme from GNOME color-scheme: {color_scheme}")
+                            logger.info(f"Detected dark theme from GNOME color-scheme: {color_scheme}")
                         else:
-                            print(f"Detected light theme from GNOME color-scheme: {color_scheme}")
+                            logger.info(f"Detected light theme from GNOME color-scheme: {color_scheme}")
                 except Exception as e:
-                    print(f"GNOME color-scheme detection failed: {e}")
+                    logger.warning(f"GNOME color-scheme detection failed: {e}")
 
             # Fallback to GTK theme detection (GTK 2/3)
             if not is_dark_theme:
@@ -80,11 +120,11 @@ class BatteryControlGUI:
                         theme_name = result.stdout.strip().strip("'\"").lower()
                         if 'dark' in theme_name or 'black' in theme_name or 'adwaita-dark' in theme_name:
                             is_dark_theme = True
-                            print(f"Detected dark theme from GTK theme: {theme_name}")
+                            logger.info(f"Detected dark theme from GTK theme: {theme_name}")
                         else:
-                            print(f"Detected light theme from GTK theme: {theme_name}")
+                            logger.info(f"Detected light theme from GTK theme: {theme_name}")
                 except Exception as e:
-                    print(f"GTK theme detection failed: {e}")
+                    logger.warning(f"GTK theme detection failed: {e}")
 
             # === KDE Plasma (Qt-based) ===
             if not is_dark_theme:
@@ -96,11 +136,11 @@ class BatteryControlGUI:
                         kde_scheme = result.stdout.strip().lower()
                         if 'dark' in kde_scheme or 'breeze dark' in kde_scheme or 'breezedark' in kde_scheme:
                             is_dark_theme = True
-                            print(f"Detected dark theme from KDE 5: {kde_scheme}")
+                            logger.info(f"Detected dark theme from KDE 5: {kde_scheme}")
                         else:
-                            print(f"Detected light theme from KDE 5: {kde_scheme}")
+                            logger.info(f"Detected light theme from KDE 5: {kde_scheme}")
                 except Exception as e:
-                    print(f"KDE 5 theme detection failed: {e}")
+                    logger.warning(f"KDE 5 theme detection failed: {e}")
 
             # Try KDE 4 fallback
             if not is_dark_theme:
@@ -111,11 +151,11 @@ class BatteryControlGUI:
                         kde_scheme = result.stdout.strip().lower()
                         if 'dark' in kde_scheme or 'obsidian' in kde_scheme:
                             is_dark_theme = True
-                            print(f"Detected dark theme from KDE 4: {kde_scheme}")
+                            logger.info(f"Detected dark theme from KDE 4: {kde_scheme}")
                         else:
-                            print(f"Detected light theme from KDE 4: {kde_scheme}")
+                            logger.info(f"Detected light theme from KDE 4: {kde_scheme}")
                 except Exception as e:
-                    print(f"KDE 4 theme detection failed: {e}")
+                    logger.warning(f"KDE 4 theme detection failed: {e}")
 
             # === XFCE ===
             if not is_dark_theme:
@@ -126,11 +166,11 @@ class BatteryControlGUI:
                         xfce_theme = result.stdout.strip().lower()
                         if 'dark' in xfce_theme or 'black' in xfce_theme or 'greybird-dark' in xfce_theme:
                             is_dark_theme = True
-                            print(f"Detected dark theme from XFCE: {xfce_theme}")
+                            logger.info(f"Detected dark theme from XFCE: {xfce_theme}")
                         else:
-                            print(f"Detected light theme from XFCE: {xfce_theme}")
+                            logger.info(f"Detected light theme from XFCE: {xfce_theme}")
                 except Exception as e:
-                    print(f"XFCE theme detection failed: {e}")
+                    logger.warning(f"XFCE theme detection failed: {e}")
 
                 # Try XFCE window manager theme
                 try:
@@ -140,9 +180,9 @@ class BatteryControlGUI:
                         xfwm_theme = result.stdout.strip().lower()
                         if 'dark' in xfwm_theme or 'black' in xfwm_theme:
                             is_dark_theme = True
-                            print(f"Detected dark theme from XFWM: {xfwm_theme}")
+                            logger.info(f"Detected dark theme from XFWM: {xfwm_theme}")
                 except Exception as e:
-                    print(f"XFWM theme detection failed: {e}")
+                    logger.warning(f"XFWM theme detection failed: {e}")
 
             # === MATE ===
             if not is_dark_theme:
@@ -153,11 +193,11 @@ class BatteryControlGUI:
                         mate_theme = result.stdout.strip().strip("'\"").lower()
                         if 'dark' in mate_theme or 'black' in mate_theme or 'blackmate' in mate_theme:
                             is_dark_theme = True
-                            print(f"Detected dark theme from MATE: {mate_theme}")
+                            logger.info(f"Detected dark theme from MATE: {mate_theme}")
                         else:
-                            print(f"Detected light theme from MATE: {mate_theme}")
+                            logger.info(f"Detected light theme from MATE: {mate_theme}")
                 except Exception as e:
-                    print(f"MATE theme detection failed: {e}")
+                    logger.warning(f"MATE theme detection failed: {e}")
 
             # === Cinnamon ===
             if not is_dark_theme:
@@ -168,11 +208,11 @@ class BatteryControlGUI:
                         cinnamon_theme = result.stdout.strip().strip("'\"").lower()
                         if 'dark' in cinnamon_theme or 'black' in cinnamon_theme or 'mint-y-dark' in cinnamon_theme:
                             is_dark_theme = True
-                            print(f"Detected dark theme from Cinnamon: {cinnamon_theme}")
+                            logger.info(f"Detected dark theme from Cinnamon: {cinnamon_theme}")
                         else:
-                            print(f"Detected light theme from Cinnamon: {cinnamon_theme}")
+                            logger.info(f"Detected light theme from Cinnamon: {cinnamon_theme}")
                 except Exception as e:
-                    print(f"Cinnamon theme detection failed: {e}")
+                    logger.warning(f"Cinnamon theme detection failed: {e}")
 
             # === Budgie ===
             if not is_dark_theme:
@@ -183,11 +223,11 @@ class BatteryControlGUI:
                         budgie_theme = result.stdout.strip().strip("'\"").lower()
                         if 'dark' in budgie_theme or 'arc-dark' in budgie_theme or 'pocillo-dark' in budgie_theme:
                             is_dark_theme = True
-                            print(f"Detected dark theme from Budgie: {budgie_theme}")
+                            logger.info(f"Detected dark theme from Budgie: {budgie_theme}")
                         else:
-                            print(f"Detected light theme from Budgie: {budgie_theme}")
+                            logger.info(f"Detected light theme from Budgie: {budgie_theme}")
                 except Exception as e:
-                    print(f"Budgie theme detection failed: {e}")
+                    logger.warning(f"Budgie theme detection failed: {e}")
 
             # === Pantheon (elementary OS) ===
             if not is_dark_theme:
@@ -198,11 +238,11 @@ class BatteryControlGUI:
                         pantheon_theme = result.stdout.strip().strip("'\"").lower()
                         if 'dark' in pantheon_theme or 'elementary-dark' in pantheon_theme:
                             is_dark_theme = True
-                            print(f"Detected dark theme from Pantheon: {pantheon_theme}")
+                            logger.info(f"Detected dark theme from Pantheon: {pantheon_theme}")
                         else:
-                            print(f"Detected light theme from Pantheon: {pantheon_theme}")
+                            logger.info(f"Detected light theme from Pantheon: {pantheon_theme}")
                 except Exception as e:
-                    print(f"Pantheon theme detection failed: {e}")
+                    logger.warning(f"Pantheon theme detection failed: {e}")
 
             # === LXDE/LXQt ===
             if not is_dark_theme:
@@ -218,9 +258,9 @@ class BatteryControlGUI:
                                 content = f.read().lower()
                                 if 'dark' in content or 'black' in content:
                                     is_dark_theme = True
-                                    print(f"Detected dark theme from LXQt config")
+                                    logger.info(f"Detected dark theme from LXQt config")
                 except Exception as e:
-                    print(f"LXQt theme detection failed: {e}")
+                    logger.warning(f"LXQt theme detection failed: {e}")
 
             # Try LXDE
             if not is_dark_theme:
@@ -231,9 +271,9 @@ class BatteryControlGUI:
                             content = f.read().lower()
                             if 'dark' in content or 'black' in content:
                                 is_dark_theme = True
-                                print(f"Detected dark theme from LXDE config")
+                                logger.info(f"Detected dark theme from LXDE config")
                 except Exception as e:
-                    print(f"LXDE theme detection failed: {e}")
+                    logger.warning(f"LXDE theme detection failed: {e}")
 
             # === Window Managers ===
 
@@ -252,10 +292,10 @@ class BatteryControlGUI:
                                 content = f.read().lower()
                                 if 'dark' in content or '#1e1e1e' in content or '#2e2e2e' in content:
                                     is_dark_theme = True
-                                    print(f"Detected dark theme from i3/Sway config")
+                                    logger.info(f"Detected dark theme from i3/Sway config")
                                     break
                 except Exception as e:
-                    print(f"i3/Sway theme detection failed: {e}")
+                    logger.warning(f"i3/Sway theme detection failed: {e}")
 
             # Awesome WM
             if not is_dark_theme and 'awesome' in window_manager:
@@ -266,9 +306,9 @@ class BatteryControlGUI:
                             content = f.read().lower()
                             if 'dark' in content or 'beautiful.bg_normal = "#1e1e1e"' in content:
                                 is_dark_theme = True
-                                print(f"Detected dark theme from Awesome WM config")
+                                logger.info(f"Detected dark theme from Awesome WM config")
                 except Exception as e:
-                    print(f"Awesome WM theme detection failed: {e}")
+                    logger.warning(f"Awesome WM theme detection failed: {e}")
 
             # === Environment Variables ===
             if not is_dark_theme:
@@ -284,7 +324,7 @@ class BatteryControlGUI:
                         env_value = os.environ.get(var, '').lower()
                         if env_value and ('dark' in env_value or 'black' in env_value):
                             is_dark_theme = True
-                            print(f"Detected dark theme from {var} env: {env_value}")
+                            logger.info(f"Detected dark theme from {var} env: {env_value}")
                             break
 
                     # Check Qt theme variables
@@ -297,11 +337,11 @@ class BatteryControlGUI:
                         env_value = os.environ.get(var, '').lower()
                         if env_value and ('dark' in env_value or 'black' in env_value):
                             is_dark_theme = True
-                            print(f"Detected dark theme from {var} env: {env_value}")
+                            logger.info(f"Detected dark theme from {var} env: {env_value}")
                             break
 
                 except Exception as e:
-                    print(f"Environment variable check failed: {e}")
+                    logger.warning(f"Environment variable check failed: {e}")
 
             # === GTK Configuration Files ===
             if not is_dark_theme:
@@ -313,7 +353,7 @@ class BatteryControlGUI:
                             content = f.read().lower()
                             if 'gtk-theme-name=.*dark' in content or 'gtk-application-prefer-dark-theme=true' in content:
                                 is_dark_theme = True
-                                print(f"Detected dark theme from GTK 3 settings")
+                                logger.info(f"Detected dark theme from GTK 3 settings")
 
                     # Check GTK 2 settings
                     gtk2_rc = os.path.expanduser('~/.gtkrc-2.0')
@@ -322,10 +362,10 @@ class BatteryControlGUI:
                             content = f.read().lower()
                             if 'dark' in content or 'black' in content:
                                 is_dark_theme = True
-                                print(f"Detected dark theme from GTK 2 settings")
+                                logger.info(f"Detected dark theme from GTK 2 settings")
 
                 except Exception as e:
-                    print(f"GTK config file check failed: {e}")
+                    logger.warning(f"GTK config file check failed: {e}")
 
             # === X11 Resources ===
             if not is_dark_theme:
@@ -342,11 +382,11 @@ class BatteryControlGUI:
                                 content = f.read().lower()
                                 if ('*background:' in content and '#1' in content) or 'dark' in content:
                                     is_dark_theme = True
-                                    print(f"Detected dark theme from X11 resources")
+                                    logger.info(f"Detected dark theme from X11 resources")
                                     break
 
                 except Exception as e:
-                    print(f"X11 resources check failed: {e}")
+                    logger.warning(f"X11 resources check failed: {e}")
 
             # === Final fallback checks ===
             if not is_dark_theme:
@@ -362,7 +402,7 @@ class BatteryControlGUI:
                     for indicator in dark_indicators:
                         if indicator and ('dark' in indicator or 'night' in indicator or 'black' in indicator):
                             is_dark_theme = True
-                            print(f"Detected dark theme from desktop indicator: {indicator}")
+                            logger.info(f"Detected dark theme from desktop indicator: {indicator}")
                             break
 
                     # Check system time for auto dark mode (heuristic)
@@ -371,14 +411,14 @@ class BatteryControlGUI:
                         current_hour = datetime.datetime.now().hour
                         if current_hour < 6 or current_hour > 18:  # Between 6 PM and 6 AM
                             # Only apply this heuristic if we couldn't detect theme otherwise
-                            print(f"No theme detected, applying time-based heuristic (evening/night)")
+                            logger.info(f"No theme detected, applying time-based heuristic (evening/night)")
                             # Don't actually set dark theme based on time - too unreliable
                             # is_dark_theme = True
 
                 except Exception as e:
-                    print(f"Final fallback check failed: {e}")
+                    logger.warning(f"Final fallback check failed: {e}")
 
-            print(f"Final theme detection result: {'Dark' if is_dark_theme else 'Light'} theme")
+            logger.info(f"Final theme detection result: {'Dark' if is_dark_theme else 'Light'} theme")
 
             # Set theme colors
             if is_dark_theme:
@@ -430,7 +470,7 @@ class BatteryControlGUI:
             self.error_color = "#d32f2f"
             self.border_color = "#e0e0e0"
             self.is_dark_theme = False
-            print(f"Theme detection failed, using light theme: {e}")
+            logger.warning(f"Theme detection failed, using light theme: {e}")
 
     def setup_styles(self):
         """Setup custom styles for widgets following Ubuntu 24.04 design"""
@@ -1342,7 +1382,7 @@ class BatteryControlGUI:
             with open(config_file, 'w') as f:
                 f.write(f"release_channel={self.release_channel}\n")
         except Exception as e:
-            print(f"Failed to save settings: {e}")
+            logger.error(f"Failed to save settings: {e}")
 
     def load_settings(self):
         """Load settings from file"""
@@ -1355,7 +1395,7 @@ class BatteryControlGUI:
                         if line.startswith("release_channel="):
                             self.release_channel = line.split("=")[1].strip()
         except Exception as e:
-            print(f"Failed to load settings: {e}")
+            logger.error(f"Failed to load settings: {e}")
 
     def refresh_theme(self):
         """Refresh the theme in case the user changed their system theme"""
@@ -1380,10 +1420,10 @@ class BatteryControlGUI:
             if hasattr(self, 'canvas'):
                 self.update_scroll_region()
 
-            print("Theme refreshed successfully")
+            logger.info("Theme refreshed successfully")
 
         except Exception as e:
-            print(f"Failed to refresh theme: {e}")
+            logger.warning(f"Failed to refresh theme: {e}")
 
     def check_theme_change(self):
         """Check if the system theme has changed"""
@@ -1396,11 +1436,11 @@ class BatteryControlGUI:
 
             # If theme changed, refresh everything
             if old_theme != self.is_dark_theme:
-                print(f"Theme changed from {'dark' if old_theme else 'light'} to {'dark' if self.is_dark_theme else 'light'}")
+                logger.info(f"Theme changed from {'dark' if old_theme else 'light'} to {'dark' if self.is_dark_theme else 'light'}")
                 self.refresh_theme()
 
         except Exception as e:
-            print(f"Failed to check theme change: {e}")
+            logger.warning(f"Failed to check theme change: {e}")
 
         # Schedule next check in 10 seconds
         self.root.after(10000, self.check_theme_change)
@@ -1465,7 +1505,7 @@ class BatteryControlGUI:
                 self.canvas.yview_moveto(1)
 
         except Exception as e:
-            print(f"Keyboard scroll error: {e}")
+            logger.warning(f"Keyboard scroll error: {e}")
 
     def _on_mousewheel(self, event):
         """Handle mouse wheel scrolling"""
@@ -1494,7 +1534,7 @@ class BatteryControlGUI:
                         self.canvas.yview_scroll(scroll_amount, "units")
 
         except Exception as e:
-            print(f"Mouse wheel scroll error: {e}")
+            logger.warning(f"Mouse wheel scroll error: {e}")
 
     def _on_enter(self, event):
         """Handle mouse entering canvas"""
@@ -1514,7 +1554,7 @@ class BatteryControlGUI:
             if canvas_width > 1:  # Only update if canvas has been rendered
                 self.canvas.itemconfig(self.canvas_window, width=canvas_width)
         except Exception as e:
-            print(f"Scroll region update error: {e}")
+            logger.warning(f"Scroll region update error: {e}")
 
     def _on_canvas_configure(self, event):
         """Handle canvas resize to update scrollable frame width"""
@@ -1523,7 +1563,7 @@ class BatteryControlGUI:
             canvas_width = event.width
             self.canvas.itemconfig(self.canvas_window, width=canvas_width)
         except Exception as e:
-            print(f"Canvas configure error: {e}")
+            logger.warning(f"Canvas configure error: {e}")
 
     def _initialize_canvas_width(self):
         """Initialize canvas width to prevent horizontal scrolling"""
@@ -1534,7 +1574,7 @@ class BatteryControlGUI:
                 self.canvas.itemconfig(self.canvas_window, width=canvas_width)
             self.update_scroll_region()
         except Exception as e:
-            print(f"Canvas width initialization error: {e}")
+            logger.warning(f"Canvas width initialization error: {e}")
 
 def main():
     root = tk.Tk()

@@ -6,18 +6,111 @@ This guide addresses the most common installation and runtime issues encountered
 
 ### 📋 Quick Diagnostic
 
-Run the diagnostic script to automatically check for common issues:
+Run the comprehensive diagnostic script to automatically check for common issues and install with full logging:
 
 ```bash
-./diagnose-and-fix.sh
+./diagnose-and-install.sh
 ```
 
 This script will:
-- Check package manager status
-- Verify battery support
-- Check dependencies
-- Test functionality
-- Apply common fixes
+- Check system requirements and compatibility
+- Diagnose and fix package manager issues
+- Install with comprehensive logging
+- Test the installation
+- Show detailed log analysis
+
+**Alternative diagnostic options:**
+```bash
+# Basic diagnostic (legacy)
+./diagnose-and-fix.sh
+
+# View installation and runtime logs
+./view-logs.sh all
+
+# View only errors from all logs
+./view-logs.sh errors
+
+# Live log monitoring
+./view-logs.sh live
+```
+
+### 📊 Logging System
+
+The Universal Battery Limiter now includes a comprehensive logging system that tracks:
+
+- **Installation Process**: Complete log of installation steps, errors, and system information
+- **Runtime Events**: Battery status changes, limit modifications, GUI operations
+- **Error Tracking**: Detailed error logs with context and stack traces
+- **System Information**: Environment details, dependencies, and configuration
+
+**Log Files Location**: `~/.local/share/battery-limiter/logs/`
+
+**Log Files:**
+- `install.log` - Installation process and system setup
+- `error.log` - All errors from all components
+- `system.log` - System events and information
+- `debug.log` - Detailed debug information
+- `events.log` - Structured events in JSON format
+- `gui.log` - GUI application events
+- `indicator.log` - System tray indicator events
+- `diagnostic.log` - Diagnostic script output
+
+**View Logs:**
+```bash
+# View all logs
+./view-logs.sh all
+
+# View installation log
+./view-logs.sh install
+
+# View runtime logs (GUI, indicator)
+./view-logs.sh runtime
+
+# View only errors
+./view-logs.sh errors
+
+# View log summary
+./view-logs.sh summary
+
+# Live log monitoring
+./view-logs.sh live
+
+# Clear all logs
+./view-logs.sh clear
+```
+
+### 🔄 Enhanced Installation Process
+
+The installation process now includes:
+
+1. **Pre-installation Checks**:
+   - System requirements validation
+   - Battery support verification
+   - Package manager health check
+   - Disk space and network connectivity
+
+2. **Comprehensive Logging**:
+   - Every installation step is logged
+   - System information collection
+   - Error tracking with context
+   - Command execution logging
+
+3. **Post-installation Validation**:
+   - Component testing
+   - Functionality verification
+   - Log analysis and summary
+
+**Enhanced Installation Commands:**
+```bash
+# Comprehensive installation with diagnostics
+./diagnose-and-install.sh
+
+# Standard installation (now with enhanced logging)
+./install.sh
+
+# View installation logs
+./view-logs.sh install
+```
 
 ### 🚨 Known Issues and Solutions
 
@@ -331,19 +424,166 @@ find /sys/class/power_supply -name "charge_control_end_threshold"
 
 If you're still experiencing issues:
 
-1. Run the diagnostic script and save output
-2. Check the project's GitHub issues
-3. Provide system information:
+1. **Run the comprehensive diagnostic**:
    ```bash
+   ./diagnose-and-install.sh
+   ```
+
+2. **Check the logs**:
+   ```bash
+   ./view-logs.sh errors    # View all errors
+   ./view-logs.sh summary   # View log summary
+   ./view-logs.sh all       # View all logs
+   ```
+
+3. **Collect system information**:
+   ```bash
+   # System info
    uname -a
    lsb_release -a
    python3 --version
+
+   # Battery info
    ls -la /sys/class/power_supply/
+
+   # Installation info
+   which battery-cli battery-gui battery-indicator
+
+   # Recent logs
+   ./view-logs.sh install | tail -50
    ```
+
+4. **Check the project's GitHub issues**
+
+5. **When reporting issues, include**:
+   - Output from `./diagnose-and-install.sh`
+   - Error logs from `./view-logs.sh errors`
+   - System information from the commands above
+   - Steps to reproduce the issue
+
+### 🔍 Advanced Troubleshooting with Logs
+
+#### Analyzing Installation Issues
+
+```bash
+# Check installation log for errors
+./view-logs.sh install | grep -i error
+
+# Check what happened during dependency installation
+./view-logs.sh install | grep -A 5 -B 5 "Installing dependencies"
+
+# Check if all files were copied correctly
+./view-logs.sh install | grep -i "copy\|install"
+```
+
+#### Analyzing Runtime Issues
+
+```bash
+# Check GUI errors
+./view-logs.sh runtime | grep -i error
+
+# Check system tray issues
+tail -f ~/.local/share/battery-limiter/logs/indicator.log
+
+# Check battery status changes
+./view-logs.sh all | grep -i "battery.*status"
+```
+
+#### Debug Mode
+
+Enable debug mode for detailed logging:
+
+```bash
+# Enable debug mode for Python components
+export BATTERY_DEBUG=1
+
+# Run with debug output
+battery-gui --debug
+battery-indicator --verbose
+
+# Check debug logs
+tail -f ~/.local/share/battery-limiter/logs/debug.log
+```
+
+### 🛠️ Log Management
+
+#### Automated Log Rotation
+
+Logs are automatically rotated when they exceed 10MB:
+
+```bash
+# Check log sizes
+./view-logs.sh summary
+
+# Manually rotate logs
+./logging-system.sh rotate
+
+# Clear old logs
+./logging-system.sh clear
+```
+
+#### Log Analysis Commands
+
+```bash
+# Find specific errors
+grep -r "ImportError\|ModuleNotFoundError" ~/.local/share/battery-limiter/logs/
+
+# Find battery-related issues
+grep -r "battery\|threshold\|charge" ~/.local/share/battery-limiter/logs/
+
+# Find GUI-related issues
+grep -r "gtk\|tkinter\|display" ~/.local/share/battery-limiter/logs/
+
+# Find system tray issues
+grep -r "indicator\|appindicator\|tray" ~/.local/share/battery-limiter/logs/
+```
 
 ### 🔧 Script Improvements Made
 
 The following improvements were made to handle common errors:
+
+#### **Comprehensive Logging System Added** ✅
+- **Installation Logging**: All installation steps logged to `~/.local/share/battery-limiter/logs/install.log`
+- **Error Logging**: Detailed error tracking in `~/.local/share/battery-limiter/logs/error.log`
+- **System Logging**: General application logs in `~/.local/share/battery-limiter/logs/system.log`
+- **Debug Logging**: Detailed debug information in `~/.local/share/battery-limiter/logs/debug.log`
+- **Component Logs**: Individual logs for GUI, indicator, and other components
+
+#### **Logging Management Commands**:
+```bash
+# View log status
+./logging-system.sh show
+
+# Collect full system information
+./logging-system.sh info
+
+# Clear all logs
+./logging-system.sh clear
+
+# Rotate large logs
+./logging-system.sh rotate
+
+# Follow logs in real-time
+tail -f ~/.local/share/battery-limiter/logs/install.log
+tail -f ~/.local/share/battery-limiter/logs/error.log
+tail -f ~/.local/share/battery-limiter/logs/system.log
+```
+
+#### **What Gets Logged During Installation**:
+- ✅ Complete system information (OS, kernel, desktop environment)
+- ✅ Battery system details (available batteries, threshold files)
+- ✅ Package manager status and dependency installation
+- ✅ Python environment and library availability
+- ✅ File installation and permission setting
+- ✅ Process creation and startup status
+- ✅ All errors with full context and timestamps
+
+#### **Application Runtime Logging**:
+- ✅ GUI application startup and errors (`gui.log`)
+- ✅ System tray indicator status (`indicator.log`)
+- ✅ Battery monitoring and notifications
+- ✅ User actions and battery limit changes
+- ✅ Library conflicts and environment issues
 
 #### `install.sh`:
 - ✅ Better dependency checking and error handling
