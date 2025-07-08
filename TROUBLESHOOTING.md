@@ -92,6 +92,160 @@ EOF
 sudo chmod 440 /etc/sudoers.d/battery-limiter
 ```
 
+#### 6. **System Tray Icon Not Showing**
+
+**Problem**: System tray icon doesn't appear even though the process is running
+
+**Common Causes**:
+- AppIndicator3 libraries missing or broken
+- System tray not supported by desktop environment
+- Library conflicts with snap packages
+- Process crashes silently on startup
+
+**🔧 QUICK FIX - Use the automated solution:**
+```bash
+# Run the comprehensive system tray fix
+./fix-system-tray.sh
+```
+
+**Manual Solutions**:
+
+**Step 1: Check if AppIndicator3 is working**
+```bash
+# Test AppIndicator3 import
+python3 -c "
+try:
+    import gi
+    gi.require_version('Gtk', '3.0')
+    gi.require_version('AppIndicator3', '0.1')
+    from gi.repository import Gtk, AppIndicator3
+    print('✅ AppIndicator3 import successful')
+except Exception as e:
+    print(f'❌ AppIndicator3 import failed: {e}')
+"
+```
+
+**Step 2: Install system tray support**
+```bash
+# For Ubuntu/Unity
+sudo apt install gir1.2-appindicator3-0.1
+
+# For GNOME (requires extension)
+sudo apt install gnome-shell-extension-appindicator
+
+# For KDE
+sudo apt install plasma-workspace-dev
+```
+
+**Step 3: Alternative Solutions**
+
+**Option A: Notification-based monitoring**
+```bash
+# Creates a background service that shows notifications
+./fix-system-tray.sh  # Choose option 2
+battery-notifier &
+```
+
+**Option B: Desktop widget**
+```bash
+# Creates a small floating window showing battery status
+./fix-system-tray.sh  # Choose option 3
+battery-widget &
+```
+
+**Option C: GUI application (always works)**
+```bash
+# Full GUI interface - most reliable option
+battery-gui &
+```
+
+**Step 4: Test the indicator manually**
+```bash
+# Kill any existing instances
+pkill -f battery-indicator
+
+# Start with debug output
+battery-indicator-launcher 2>&1 | head -20
+
+# Check if process is running
+ps aux | grep battery-indicator
+```
+
+**Step 5: Use alternative system tray methods**
+```bash
+# Try with different backends
+export GDK_BACKEND=x11
+battery-indicator-launcher &
+
+# Or use notification-based approach
+battery-notifier &  # New notification service
+```
+
+**Step 6: Desktop Environment Specific Fixes**
+
+**GNOME/Ubuntu:**
+```bash
+# Enable system tray extension
+gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com
+
+# Or install TopIcons Plus
+sudo apt install gnome-shell-extension-top-icons-plus
+```
+
+**Unity:**
+```bash
+# Unity has built-in system tray support
+# Use notification-based alternative if icon doesn't show
+battery-notifier &
+```
+
+**KDE/Plasma:**
+```bash
+# System tray is built-in, check if it's enabled
+# Right-click on panel → Add Widgets → System Tray
+```
+
+**XFCE:**
+```bash
+# Add notification area to panel
+# Right-click panel → Panel → Add New Items → Notification Area
+```
+
+### 🔧 **System Tray Icon Troubleshooting Commands**
+
+Quick diagnostic commands:
+```bash
+# Check what's running
+ps aux | grep battery
+
+# Check system tray support
+echo $XDG_CURRENT_DESKTOP
+echo $XDG_SESSION_TYPE
+
+# Test with simple indicator
+python3 -c "
+import gi
+gi.require_version('AppIndicator3', '0.1')
+from gi.repository import AppIndicator3, Gtk
+indicator = AppIndicator3.Indicator.new('test', 'battery', AppIndicator3.IndicatorCategory.SYSTEM_SERVICES)
+indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
+print('Test indicator created')
+"
+
+# Check logs for errors
+journalctl --user -f | grep -i indicator
+```
+
+### 📋 **Recommended Solutions by Desktop Environment**
+
+| Desktop Environment | Recommended Solution |
+|-------------------|-------------------|
+| GNOME/Ubuntu | `battery-notifier &` |
+| Unity | `battery-widget &` |
+| KDE/Plasma | `battery-indicator-launcher &` |
+| XFCE | `battery-indicator-launcher &` |
+| Any/Fallback | `battery-gui &` |
+
 ### 🔄 Clean Reinstallation
 
 If issues persist, perform a clean reinstallation:

@@ -1,0 +1,228 @@
+#!/usr/bin/env python3
+
+import gi
+import sys
+import os
+import subprocess
+import threading
+import time
+
+# Try different indicator backends
+try:
+    gi.require_version('AppIndicator3', '0.1')
+    from gi.repository import AppIndicator3
+    APPINDICATOR_AVAILABLE = True
+except:
+    APPINDICATOR_AVAILABLE = False
+
+try:
+    gi.require_version('Gtk', '3.0')
+    from gi.repository import Gtk, GLib
+    GTK_AVAILABLE = True
+except:
+    GTK_AVAILABLE = False
+
+try:
+    gi.require_version('Notify', '0.7')
+    from gi.repository import Notify
+    NOTIFY_AVAILABLE = True
+except:
+    NOTIFY_AVAILABLE = False
+
+class UniversalBatteryIndicator:
+    def __init__(self):
+        self.indicator = None
+        self.battery_level = 0
+        self.battery_limit = 80
+        self.is_charging = False
+        
+        # Initialize notification system
+        if NOTIFY_AVAILABLE:
+            Notify.init("Battery Limiter")
+        
+        # Try to create indicator
+        self.create_indicator()
+        
+        # Start monitoring
+        self.start_monitoring()
+    
+    def create_indicator(self):
+        """Create system tray indicator with fallback options"""
+        if APPINDICATOR_AVAILABLE:
+            try:
+                self.indicator = AppIndicator3.Indicator.new(
+                    "battery-limiter",
+                    "battery",
+                    AppIndicator3.IndicatorCategory.SYSTEM_SERVICES
+                )
+                self.indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
+                self.indicator.set_title("Battery Limiter")
+                
+                # Create menu
+                self.create_menu()
+                
+                print("✅ AppIndicator3 system tray created")
+                return True
+            except Exception as e:
+                print(f"❌ AppIndicator3 failed: {e}")
+        
+        # Fallback: Use notification-based approach
+        if NOTIFY_AVAILABLE:
+            print("⚠️ Using notification-based monitoring")
+            return True
+        
+        print("❌ No system tray support available")
+        return False
+    
+    def create_menu(self):
+        """Create the context menu"""
+        menu = Gtk.Menu()
+        
+        # Battery status
+        status_item = Gtk.MenuItem(label="Battery Status")
+        status_item.connect("activate", self.show_status)
+        menu.append(status_item)
+        
+        menu.append(Gtk.SeparatorMenuItem())
+        
+        # Set limit options
+        for limit in [60, 70, 80, 90, 100]:
+            item = Gtk.MenuItem(label=f"Set Limit to {limit}%")
+            item.connect("activate", self.set_limit, limit)
+            menu.append(item)
+        
+        menu.append(Gtk.SeparatorMenuItem())
+        
+        # Open GUI
+        gui_item = Gtk.MenuItem(label="Open Control Panel")
+        gui_item.connect("activate", self.open_gui)
+        menu.append(gui_item)
+        
+        # Exit
+        exit_item = Gtk.MenuItem(label="Exit")
+        exit_item.connect("activate", self.quit)
+        menu.append(exit_item)
+        
+        menu.show_all()
+        
+        if self.indicator:
+            self.indicator.set_menu(menu)
+    
+    def show_status(self, widget):
+        """Show battery status"""
+        if NOTIFY_AVAILABLE:
+            notification = Notify.Notification.new(
+                "Battery Status",
+                f"Level: {self.battery_level}%\nLimit: {self.battery_limit}%\nCharging: {self.is_charging}",
+                "battery"
+            )
+            notification.show()
+    
+    def set_limit(self, widget, limit):
+        """Set battery limit"""
+        try:
+            result = subprocess.run(
+                ['sudo', '/usr/local/bin/set-charge-limit.sh', str(limit)],
+                capture_output=True, text=True
+            )
+            if result.returncode == 0:
+                self.battery_limit = limit
+                if NOTIFY_AVAILABLE:
+                    notification = Notify.Notification.new(
+                        "Battery Limit Set",
+                        f"Battery limit set to {limit}%",
+                        "battery"
+                    )
+                    notification.show()
+            else:
+                print(f"Failed to set limit: {result.stderr}")
+        except Exception as e:
+            print(f"Error setting limit: {e}")
+    
+    def open_gui(self, widget):
+        """Open the GUI application"""
+        try:
+            subprocess.Popen(['battery-gui'])
+        except Exception as e:
+            print(f"Error opening GUI: {e}")
+    
+    def quit(self, widget):
+        """Quit the application"""
+        Gtk.main_quit()
+    
+    def get_battery_info(self):
+        """Get current battery information"""
+        try:
+            # Get battery level
+            with open('/sys/class/power_supply/BAT0/capacity', 'r') as f:
+                self.battery_level = int(f.read().strip())
+            
+            # Get charging status
+            with open('/sys/class/power_supply/BAT0/status', 'r') as f:
+                status = f.read().strip()
+                self.is_charging = status == 'Charging'
+            
+            # Get battery limit
+            with open('/sys/class/power_supply/BAT0/charge_control_end_threshold', 'r') as f:
+                self.battery_limit = int(f.read().strip())
+                
+        except Exception as e:
+            print(f"Error reading battery info: {e}")
+    
+    def update_indicator(self):
+        """Update indicator icon and tooltip"""
+        if self.indicator:
+            # Choose appropriate icon
+            if self.is_charging:
+                icon = "battery-charging"
+            elif self.battery_level <= 15:
+                icon = "battery-low"
+            elif self.battery_level >= self.battery_limit:
+                icon = "battery-full"
+            else:
+                icon = "battery-good"
+            
+            # Update tooltip
+            tooltip = f"Battery: {self.battery_level}% (Limit: {self.battery_limit}%)"
+            self.indicator.set_title(tooltip)
+    
+    def start_monitoring(self):
+        """Start battery monitoring thread"""
+        def monitor():
+            while True:
+                self.get_battery_info()
+                GLib.idle_add(self.update_indicator)
+                time.sleep(5)  # Update every 5 seconds
+        
+        thread = threading.Thread(target=monitor, daemon=True)
+        thread.start()
+    
+    def run(self):
+        """Run the indicator"""
+        if GTK_AVAILABLE:
+            Gtk.main()
+        else:
+            print("❌ GTK not available")
+            sys.exit(1)
+
+def main():
+    print("🔋 Starting Universal Battery Limiter System Tray")
+    
+    # Check desktop environment
+    desktop = os.environ.get('XDG_CURRENT_DESKTOP', 'Unknown')
+    session = os.environ.get('XDG_SESSION_TYPE', 'Unknown')
+    print(f"Desktop: {desktop}, Session: {session}")
+    
+    # Create and run indicator
+    indicator = UniversalBatteryIndicator()
+    
+    try:
+        indicator.run()
+    except KeyboardInterrupt:
+        print("\n🔋 Battery Limiter stopped")
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
