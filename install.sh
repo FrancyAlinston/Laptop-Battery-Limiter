@@ -38,8 +38,21 @@ print_colored $GREEN "✅ Battery charge control supported"
 
 # Install dependencies
 print_colored $YELLOW "📦 Installing dependencies..."
-sudo apt update
-sudo apt install -y python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-appindicator3-0.1 gir1.2-notify-0.7 python3-tk
+if command -v apt >/dev/null 2>&1; then
+    # Check if apt is working properly
+    if sudo apt update >/dev/null 2>&1; then
+        # Try to install dependencies, continue if some fail
+        print_colored $BLUE "Installing Python GTK dependencies..."
+        sudo apt install -y python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-appindicator3-0.1 gir1.2-notify-0.7 python3-tk 2>/dev/null || {
+            print_colored $YELLOW "⚠️ Some dependencies may not be available, continuing..."
+        }
+    else
+        print_colored $YELLOW "⚠️ Package manager issues detected, continuing with installation..."
+    fi
+else
+    print_colored $YELLOW "⚠️ APT not available, please install dependencies manually:"
+    print_colored $BLUE "  python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-appindicator3-0.1 gir1.2-notify-0.7 python3-tk"
+fi
 
 # Create directories
 print_colored $YELLOW "📁 Creating directories..."
@@ -59,6 +72,26 @@ sudo cp set-charge-limit.sh /usr/local/bin/
 sudo chmod +x /usr/local/bin/battery-*
 sudo chmod +x /usr/local/bin/set-charge-limit.sh
 
+# Create battery indicator launcher to fix library conflicts
+print_colored $YELLOW "🔧 Creating system tray launcher..."
+sudo tee /usr/local/bin/battery-indicator-launcher > /dev/null << 'EOF'
+#!/bin/bash
+# Battery Indicator Launcher Script
+# Fixes library conflicts with snap packages
+
+# Unset problematic environment variables
+unset LD_LIBRARY_PATH
+unset PYTHONPATH
+
+# Set proper library path
+export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
+
+# Launch battery indicator
+exec /usr/local/bin/battery-indicator "$@"
+EOF
+
+sudo chmod +x /usr/local/bin/battery-indicator-launcher
+
 # Install desktop entries
 print_colored $YELLOW "🖥️ Setting up autostart..."
 
@@ -67,7 +100,7 @@ cat > ~/.config/autostart/battery-limiter.desktop << EOF
 [Desktop Entry]
 Name=Universal Battery Limiter
 Comment=Battery charge limit management for all laptops
-Exec=/usr/local/bin/battery-indicator
+Exec=/usr/local/bin/battery-indicator-launcher
 Icon=battery
 Terminal=false
 Type=Application
@@ -90,17 +123,24 @@ EOF
 sudo chmod 440 "$SUDOERS_FILE"
 
 # Update desktop database
-sudo update-desktop-database
+if command -v update-desktop-database >/dev/null 2>&1; then
+    sudo update-desktop-database 2>/dev/null || true
+fi
 
 print_colored $GREEN "✅ Installation completed!"
 echo
 print_colored $BLUE "🚀 Available commands:"
-echo "  battery-cli           - Interactive CLI"
-echo "  battery-limit         - Simple CLI commands"
-echo "  battery-indicator     - System tray indicator"
-echo "  battery-gui           - GUI application"
+echo "  battery-cli               - Interactive CLI"
+echo "  battery-limit             - Simple CLI commands"
+echo "  battery-indicator         - System tray indicator"
+echo "  battery-indicator-launcher - System tray launcher (fixes library conflicts)"
+echo "  battery-gui               - GUI application"
 echo
 print_colored $BLUE "🔄 The system tray indicator will start automatically on next login"
-print_colored $YELLOW "Or start it now: battery-indicator"
+print_colored $YELLOW "Or start it now: battery-indicator-launcher"
+echo
+print_colored $BLUE "🧪 Test the installation:"
+echo "  battery-cli status        - Check current battery status"
+echo "  battery-gui               - Open GUI application"
 echo
 print_colored $GREEN "✨ Installation successful! You can now manage your battery limit from the system tray."

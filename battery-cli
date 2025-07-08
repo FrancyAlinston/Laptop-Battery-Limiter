@@ -7,6 +7,11 @@ THRESHOLD_FILE="/sys/class/power_supply/BAT0/charge_control_end_threshold"
 BAT_CAPACITY_FILE="/sys/class/power_supply/BAT0/capacity"
 BAT_STATUS_FILE="/sys/class/power_supply/BAT0/status"
 
+# Alternative battery paths for different systems
+THRESHOLD_ALT_FILE="/sys/class/power_supply/BAT1/charge_control_end_threshold"
+BAT_CAPACITY_ALT_FILE="/sys/class/power_supply/BAT1/capacity"
+BAT_STATUS_ALT_FILE="/sys/class/power_supply/BAT1/status"
+
 # Colors for better UI
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -21,6 +26,22 @@ print_colored() {
     local color=$1
     local text=$2
     echo -e "${color}${text}${NC}"
+}
+
+# Function to detect battery files
+detect_battery_files() {
+    if [ -f "$THRESHOLD_FILE" ]; then
+        return 0
+    elif [ -f "$THRESHOLD_ALT_FILE" ]; then
+        THRESHOLD_FILE="$THRESHOLD_ALT_FILE"
+        BAT_CAPACITY_FILE="$BAT_CAPACITY_ALT_FILE"
+        BAT_STATUS_FILE="$BAT_STATUS_ALT_FILE"
+        return 0
+    else
+        print_colored $RED "❌ Battery control files not found!"
+        print_colored $YELLOW "This system may not support battery charge limiting."
+        return 1
+    fi
 }
 
 # Function to check if running as root
@@ -43,6 +64,13 @@ check_support() {
 
 # Function to get current battery info
 get_battery_info() {
+    if ! detect_battery_files; then
+        echo "current_limit:N/A"
+        echo "current_level:N/A"
+        echo "battery_status:N/A"
+        return 1
+    fi
+    
     local current_limit=$(cat "$THRESHOLD_FILE" 2>/dev/null || echo "N/A")
     local current_level=$(cat "$BAT_CAPACITY_FILE" 2>/dev/null || echo "N/A")
     local battery_status=$(cat "$BAT_STATUS_FILE" 2>/dev/null || echo "N/A")

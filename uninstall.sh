@@ -25,19 +25,26 @@ if [ "$EUID" -eq 0 ]; then
 fi
 
 # Check if installed via package manager
-if dpkg -l | grep -q universal-battery-limiter; then
-    print_colored $YELLOW "📦 Package installation detected"
-    print_colored $BLUE "To uninstall the .deb package, use:"
-    echo "sudo apt remove universal-battery-limiter"
-    echo ""
-    read -p "Do you want to uninstall the package now? (y/N): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        sudo apt remove universal-battery-limiter
-        print_colored $GREEN "✅ Package uninstalled successfully!"
-        exit 0
+if command -v dpkg >/dev/null 2>&1; then
+    # Check if dpkg is working properly
+    if dpkg -l >/dev/null 2>&1; then
+        if dpkg -l | grep -q universal-battery-limiter; then
+            print_colored $YELLOW "📦 Package installation detected"
+            print_colored $BLUE "To uninstall the .deb package, use:"
+            echo "sudo apt remove universal-battery-limiter"
+            echo ""
+            read -p "Do you want to uninstall the package now? (y/N): " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                sudo apt remove universal-battery-limiter
+                print_colored $GREEN "✅ Package uninstalled successfully!"
+                exit 0
+            else
+                print_colored $YELLOW "Continuing with manual uninstall..."
+            fi
+        fi
     else
-        print_colored $YELLOW "Continuing with manual uninstall..."
+        print_colored $YELLOW "⚠️ Package manager status file corrupted, proceeding with manual uninstall..."
     fi
 fi
 
@@ -56,7 +63,10 @@ sudo rm -f /usr/local/bin/battery-cli
 sudo rm -f /usr/local/bin/battery-limit
 sudo rm -f /usr/local/bin/battery-gui
 sudo rm -f /usr/local/bin/battery-indicator
+sudo rm -f /usr/local/bin/battery-indicator-launcher
+sudo rm -f /usr/local/bin/battery-gui-launcher.sh
 sudo rm -f /usr/local/bin/set-charge-limit.sh
+sudo rm -f /usr/local/bin/bcli
 
 # Remove autostart entries
 print_colored $YELLOW "🗑️ Removing autostart entries..."
@@ -67,6 +77,7 @@ sudo rm -f /etc/xdg/autostart/universal-battery-limiter.desktop || true
 # Remove sudo permissions
 print_colored $YELLOW "🔐 Removing sudo permissions..."
 sudo rm -f /etc/sudoers.d/universal-battery-limiter
+sudo rm -f /etc/sudoers.d/battery-limiter
 
 # Update desktop database
 print_colored $YELLOW "🔄 Updating desktop database..."
