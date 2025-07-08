@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- Battery outline -->
+  <rect x="3" y="7" width="16" height="10" rx="2" ry="2" 
+        fill="none" stroke="#333" stroke-width="1.5"/>
+  
+  <!-- Battery terminal -->
+  <rect x="19" y="10" width="2" height="4" rx="0.5" ry="0.5" 
+        fill="#333"/>
+  
+  <!-- Battery fill -->
+  <rect x="5" y="9" width="6" height="6" rx="1" ry="1" 
+        fill="#FFC107" opacity="0.8"/>
+  
+  <!-- Percentage text -->
+  <text x="11" y="13" text-anchor="middle" font-family="Arial, sans-serif" 
+        font-size="6" font-weight="bold" fill="#333">50%</text>
+</svg>

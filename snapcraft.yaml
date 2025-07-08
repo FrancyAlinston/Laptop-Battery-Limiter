@@ -1,13 +1,18 @@
 name: universal-battery-limiter
 base: core22
-version: '2.1.0'
-summary: Battery charge limit management for all laptops
+version: '2.2.0'
+summary: Battery charge limit management for all laptops with animated icons
 description: |
   A comprehensive battery charge limit management tool for all laptops
   with multiple interfaces including CLI, GUI, and system tray integration.
+  
+  NEW in v2.2.0: Beautiful animated system tray icons that respond to battery state!
 
   Features:
   - Interactive CLI with colored output and presets
+  - Modern GUI application with theme-aware styling
+  - Animated system tray icons (charging, low battery, limit reached, etc.)
+  - System tray indicator for quick access
   - Modern GUI application with dark theme
   - System tray indicator for quick access
   - Battery status monitoring

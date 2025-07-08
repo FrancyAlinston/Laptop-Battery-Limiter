@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- Battery outline -->
+  <defs>
+    <linearGradient id="normalGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#2196F3;stop-opacity:0.8" />
+      <stop offset="50%" style="stop-color:#64B5F6;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#1976D2;stop-opacity:0.8" />
+    </linearGradient>
+    
+    <linearGradient id="batteryBodyNormal" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#E3F2FD;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F1F8FF;stop-opacity:1" />
+    </linearGradient>
+    
+    <filter id="blueGlow">
+      <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Battery body -->
+  <rect x="2" y="6" width="17" height="12" rx="2" ry="2" 
+        fill="url(#batteryBodyNormal)" stroke="#2196F3" stroke-width="1.2"/>
+  
+  <!-- Battery terminal -->
+  <rect x="19" y="9" width="3" height="6" rx="1" ry="1" 
+        fill="#2196F3"/>
+  
+  <!-- Normal battery fill (steady with subtle pulse) -->
+  <rect x="4" y="8" width="9" height="8" rx="1" ry="1" 
+        fill="url(#normalGradient)" filter="url(#blueGlow)">
+    <animate attributeName="opacity" 
+             values="0.8;1.0;0.8" 
+             dur="4s" 
+             repeatCount="indefinite"/>
+  </rect>
+  
+  <!-- Gentle breathing effect -->
+  <circle cx="12" cy="12" r="8" fill="none" stroke="#2196F3" stroke-width="0.3" opacity="0">
+    <animate attributeName="r" values="6;9;6" dur="5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0;0.3" dur="5s" repeatCount="indefinite"/>
+  </circle>
+  
+  <!-- Percentage indicator -->
+  <text x="12" y="13" text-anchor="middle" font-family="Arial, sans-serif" 
+        font-size="5" font-weight="bold" fill="#1976D2" opacity="0.8">
+    70%
+    <animate attributeName="opacity" 
+             values="0.6;1.0;0.6" 
+             dur="3s" 
+             repeatCount="indefinite"/>
+  </text>
+  
+  <!-- Subtle energy dots -->
+  <circle cx="6" cy="10" r="0.3" fill="#2196F3" opacity="0">
+    <animate attributeName="opacity" values="0;0.7;0" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="r" values="0.2;0.4;0.2" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  
+  <circle cx="10" cy="14" r="0.3" fill="#64B5F6" opacity="0">
+    <animate attributeName="opacity" values="0;0.6;0" dur="2.3s" begin="0.5s" repeatCount="indefinite"/>
+    <animate attributeName="r" values="0.2;0.5;0.2" dur="2.3s" begin="0.5s" repeatCount="indefinite"/>
+  </circle>
+  
+  <circle cx="15" cy="11" r="0.3" fill="#2196F3" opacity="0">
+    <animate attributeName="opacity" values="0;0.5;0" dur="2.7s" begin="1s" repeatCount="indefinite"/>
+    <animate attributeName="r" values="0.2;0.3;0.2" dur="2.7s" begin="1s" repeatCount="indefinite"/>
+  </circle>
+</svg>

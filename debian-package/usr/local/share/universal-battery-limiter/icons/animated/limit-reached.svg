@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- Battery outline -->
+  <rect x="3" y="7" width="16" height="10" rx="2" ry="2" 
+        fill="none" stroke="#333" stroke-width="1.5"/>
+  
+  <!-- Battery terminal -->
+  <rect x="19" y="10" width="2" height="4" rx="0.5" ry="0.5" 
+        fill="#333"/>
+  
+  <!-- Full battery fill with subtle glow -->
+  <rect x="5" y="9" width="12" height="6" rx="1" ry="1" 
+        fill="#4CAF50" opacity="0.9">
+    <animate attributeName="opacity" 
+             values="0.7;1.0;0.7" 
+             dur="3s" 
+             repeatCount="indefinite"/>
+  </rect>
+  
+  <!-- Limit reached checkmark -->
+  <g transform="translate(12, 12)">
+    <circle cx="0" cy="0" r="3" fill="none" stroke="#4CAF50" stroke-width="1">
+      <animate attributeName="stroke-dasharray" 
+               values="0,20;15,20;15,20" 
+               dur="2s" 
+               repeatCount="indefinite"/>
+    </circle>
+    <path d="M-1.5,0 L-0.5,1 L1.5,-1" 
+          fill="none" stroke="#4CAF50" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round">
+      <animate attributeName="stroke-dasharray" 
+               values="0,10;6,10;6,10" 
+               dur="2s" 
+               begin="0.5s"
+               repeatCount="indefinite"/>
+    </path>
+  </g>
+</svg>

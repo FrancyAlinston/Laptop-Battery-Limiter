@@ -1,3 +1,24 @@
+universal-battery-limiter (2.2.0) stable; urgency=low
+
+  * Version 2.2.0 release - Beautiful Animated System Tray Icons
+  * NEW: Professional animated system tray icons inspired by Flaticon
+  * NEW: Five distinct animation states (charging, low battery, limit reached, disconnected, normal)
+  * NEW: Enhanced animated icon manager with smart state detection
+  * NEW: SVG-based animations with gradients, particles, and energy effects
+  * NEW: Fallback compatibility for all system tray implementations
+  * NEW: Performance-optimized animations that preserve battery life
+  * NEW: Animation demo system and browser-based showcase
+  * NEW: Comprehensive animated icons documentation
+  * IMPROVED: System tray experience with contextual visual feedback
+  * IMPROVED: User engagement with beautiful, responsive animations
+  * IMPROVED: Cross-platform compatibility with SVG-to-PNG conversion
+  * ENHANCED: Professional visual design matching modern applications
+  * ENHANCED: Battery state awareness with intelligent animation triggers
+  * TECHNICAL: Added librsvg2-bin dependency for SVG processing
+  * TECHNICAL: Enhanced .gitignore for animation artifacts and build files
+
+ -- FrancyAlinston <francyalen@gmail.com>  Tue, 08 Jul 2025 01:00:00 +0100
+
 universal-battery-limiter (2.1.0) stable; urgency=low
 
   * Version 2.1.0 release - Enhanced Distribution and Metadata

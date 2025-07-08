@@ -34,6 +34,14 @@ print_colored $YELLOW "📋 Updating package files..."
 cp battery-cli battery-limit battery-gui battery-indicator set-charge-limit.sh debian-package/usr/local/bin/
 cp README.md debian-package/usr/share/doc/universal-battery-limiter/
 
+# Copy animated icons and supporting files
+print_colored $YELLOW "🎨 Copying animated icons..."
+mkdir -p debian-package/usr/local/share/universal-battery-limiter/
+cp -r icons/ debian-package/usr/local/share/universal-battery-limiter/
+cp enhanced_animated_icons.py debian-package/usr/local/share/universal-battery-limiter/
+cp animated_icons.py debian-package/usr/local/share/universal-battery-limiter/
+cp ANIMATED-ICONS.md debian-package/usr/share/doc/universal-battery-limiter/
+
 # Set permissions
 chmod 755 debian-package/usr/local/bin/*
 chmod 440 debian-package/etc/sudoers.d/universal-battery-limiter
@@ -43,7 +51,7 @@ print_colored $YELLOW "📦 Building .deb package..."
 dpkg-deb --build debian-package
 
 # Rename the package
-PACKAGE_NAME="universal-battery-limiter_2.1.0_all.deb"
+PACKAGE_NAME="universal-battery-limiter_2.2.0_all.deb"
 mv debian-package.deb "$PACKAGE_NAME"
 
 # Verify the package

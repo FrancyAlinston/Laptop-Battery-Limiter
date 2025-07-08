@@ -14,6 +14,20 @@ import json
 import urllib.request
 import urllib.error
 
+# Import our enhanced animated icon manager
+try:
+    from enhanced_animated_icons import EnhancedAnimatedIconManager
+    ANIMATIONS_AVAILABLE = True
+    print("✨ Enhanced animated icons available")
+except ImportError:
+    try:
+        from animated_icons import AnimatedIconManager as EnhancedAnimatedIconManager
+        ANIMATIONS_AVAILABLE = True
+        print("📱 Basic animated icons available")
+    except ImportError:
+        ANIMATIONS_AVAILABLE = False
+        print("⚠️ Animated icons not available, using static icons")
+
 class BatteryLimitIndicator:
     def __init__(self):
         # Initialize notification
@@ -29,15 +43,28 @@ class BatteryLimitIndicator:
         self.indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
         self.indicator.set_menu(self.create_menu())
 
+        # Initialize enhanced animated icon manager
+        if ANIMATIONS_AVAILABLE:
+            self.icon_manager = EnhancedAnimatedIconManager(self.indicator)
+            print("✅ Enhanced animated icons enabled")
+        else:
+            self.icon_manager = None
+            print("ℹ️ Using static system icons")
+
         # Battery files
         self.threshold_file = "/sys/class/power_supply/BAT0/charge_control_end_threshold"
         self.capacity_file = "/sys/class/power_supply/BAT0/capacity"
         self.status_file = "/sys/class/power_supply/BAT0/status"
 
         # Version info for updates
-        self.current_version = "2.0.0"
+        self.current_version = "2.2.0"
         self.github_repo = "FrancyAlinston/Laptop-Battery-Limiter"
         self.release_channel = "stable"  # Can be "stable" or "beta"
+
+        # Battery state tracking
+        self.last_battery_level = 0
+        self.last_battery_status = ""
+        self.last_charge_limit = 80
 
         # Load settings
         self.load_settings()
@@ -144,6 +171,19 @@ class BatteryLimitIndicator:
 
         # Update tooltip
         self.indicator.set_title(f"Battery: {level}% | Limit: {limit}%")
+        
+        # Update animated icon if available
+        if self.icon_manager:
+            # Only update icon if state changed (to avoid unnecessary animations)
+            current_state = (level, status, limit)
+            if not hasattr(self, '_last_icon_state') or self._last_icon_state != current_state:
+                self._last_icon_state = current_state
+                self.icon_manager.update_icon(level, status, limit)
+        
+        # Store current state
+        self.last_battery_level = level
+        self.last_battery_status = status
+        self.last_charge_limit = limit
 
     def set_limit(self, widget, limit):
         def run_command():
