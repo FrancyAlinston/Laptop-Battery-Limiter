@@ -353,7 +353,7 @@ SUDOERS_FILE="/etc/sudoers.d/battery-limiter"
 sudo tee "$SUDOERS_FILE" > /dev/null << EOF
 # Allow users to set battery charge limits without password
 %sudo ALL=(ALL) NOPASSWD: /usr/local/bin/set-charge-limit.sh
-%sudo ALL=(ALL) NOPASSWD: /bin/bash -c "echo * > /sys/class/power_supply/BAT0/charge_control_end_threshold"
+%sudo ALL=(ALL) NOPASSWD: /bin/bash -c echo * > /sys/class/power_supply/BAT0/charge_control_end_threshold
 EOF
 
 sudo chmod 440 "$SUDOERS_FILE"

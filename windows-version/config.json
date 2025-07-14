@@ -1,0 +1,39 @@
+{
+    "version": "1.0.0",
+    "application": {
+        "name": "Universal Battery Limiter",
+        "edition": "Windows 11",
+        "auto_start": false,
+        "minimize_to_tray": true,
+        "check_updates": true
+    },
+    "battery": {
+        "default_limit": 80,
+        "monitoring_interval": 5,
+        "notification_enabled": true,
+        "low_battery_warning": 20,
+        "full_battery_notification": true
+    },
+    "ui": {
+        "theme": "auto",
+        "window_position": "center",
+        "remember_position": true,
+        "show_system_info": true,
+        "compact_mode": false
+    },
+    "methods": {
+        "preferred_order": [
+            "Manufacturer Specific",
+            "WMI",
+            "PowerShell Power Plans"
+        ],
+        "retry_failed": true,
+        "fallback_enabled": true
+    },
+    "advanced": {
+        "debug_mode": false,
+        "log_level": "INFO",
+        "backup_power_plans": true,
+        "verify_settings": true
+    }
+}

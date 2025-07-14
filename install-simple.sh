@@ -95,7 +95,7 @@ sudo chmod +x /usr/local/bin/battery-indicator-launcher
 print_colored $YELLOW "🔑 Setting up sudo permissions..."
 sudo tee /etc/sudoers.d/battery-limiter > /dev/null << 'EOF'
 %sudo ALL=(ALL) NOPASSWD: /usr/local/bin/set-charge-limit.sh
-%sudo ALL=(ALL) NOPASSWD: /bin/bash -c "echo * > /sys/class/power_supply/BAT*/charge_control_end_threshold"
+%sudo ALL=(ALL) NOPASSWD: /bin/bash -c echo * > /sys/class/power_supply/BAT*/charge_control_end_threshold
 EOF
 
 sudo chmod 440 /etc/sudoers.d/battery-limiter
