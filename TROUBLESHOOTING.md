@@ -120,15 +120,25 @@ The installation process now includes:
 
 **Solution**:
 ```bash
-# Back up the current status file
-sudo cp /var/lib/dpkg/status /var/lib/dpkg/status.backup
+# Use the enhanced uninstall script to fix dpkg corruption
+./uninstall.sh --fix-dpkg
 
-# Try to fix the corrupted file
+# Or manually fix the corrupted file
+sudo cp /var/lib/dpkg/status /var/lib/dpkg/status.backup
 sudo dpkg --configure -a
 
 # If that fails, use the diagnostic script
 ./diagnose-and-fix.sh
 ```
+
+**Enhanced Uninstall Features**: The new comprehensive uninstall script:
+- ✅ **Automatic dpkg corruption detection and cleanup**
+- ✅ **Complete removal from all system locations**
+- ✅ **Automatic backup creation before removal**
+- ✅ **Process termination and cleanup**
+- ✅ **System database updates**
+- ✅ **Environment variable cleanup**
+- ✅ **Verification and reporting**
 
 #### 2. **System Tray Indicator Library Conflicts**
 
@@ -341,276 +351,152 @@ journalctl --user -f | grep -i indicator
 
 ### 🔄 Clean Reinstallation
 
-If issues persist, perform a clean reinstallation:
+If issues persist, perform a comprehensive clean reinstallation:
 
 ```bash
-# 1. Completely remove the current installation
+# 1. Use the enhanced comprehensive uninstall
 ./uninstall.sh
 
-# 2. Clean up any remaining files
-sudo rm -f /usr/local/bin/battery-*
-sudo rm -f /usr/local/bin/set-charge-limit.sh
-sudo rm -f /etc/sudoers.d/battery-limiter
-rm -f ~/.config/autostart/battery-limiter.desktop
+# 2. Fix any dpkg corruption if detected
+./uninstall.sh --fix-dpkg
 
-# 3. Install fresh
+# 3. Verify complete removal
+which battery-cli battery-gui battery-indicator 2>/dev/null || echo "✅ All executables removed"
+
+# 4. Check for remaining processes
+ps aux | grep battery | grep -v grep || echo "✅ No battery processes running"
+
+# 5. Fresh installation
 ./install.sh
 
-# 4. Test the installation
+# 6. Test the installation
 ./diagnose-and-fix.sh
 ```
 
-### 🧪 Testing Components
+**Enhanced Uninstall Script Features:**
+- 🔋 **Battery Reset**: Automatically resets battery limit to 100% before removal
+- 📦 **dpkg Cleanup**: Detects and fixes corrupted package manager entries
+- 🗑️ **Complete Removal**: Removes files from all possible locations (/usr/local/bin, /usr/bin, ~/.local/bin)
+- ⏹️ **Process Management**: Safely stops all battery-related processes
+- 🔐 **Permission Cleanup**: Removes sudo permissions and systemd services
+- 🧹 **Environment Cleanup**: Cleans shell aliases and environment variables
+- 💾 **Automatic Backup**: Creates timestamped backups before removal
+- 📊 **Verification**: Reports any remaining files or processes
+- 📝 **Comprehensive Logging**: Logs all uninstall actions for troubleshooting
 
-Test each component individually:
-
+**Uninstall Options:**
 ```bash
-# Test CLI
-battery-cli status
+# Standard comprehensive uninstall
+./uninstall.sh
 
-# Test GUI (with timeout to avoid hanging)
-timeout 10 battery-gui
+# Force dpkg cleanup (use if package manager is corrupted)
+./uninstall.sh --fix-dpkg
 
-# Test indicator with launcher
-battery-indicator-launcher &
+# View uninstall logs
+cat ~/.local/share/battery-limiter/logs/uninstall.log
 ```
 
-### 🔍 Advanced Troubleshooting
+### 🗑️ Comprehensive Uninstall Script
 
-#### Enable Debug Mode
+The Universal Battery Limiter now includes a powerful comprehensive uninstall script designed to completely remove all traces of the application from your system, including fixing package manager corruption issues.
 
-For detailed error information:
+#### **Features of the Enhanced Uninstall Script:**
 
-```bash
-# Enable debug mode for Python scripts
-export PYTHONPATH="/usr/local/lib/python3/dist-packages:$PYTHONPATH"
-export G_MESSAGES_DEBUG=all
+1. **🔍 Intelligent Detection**:
+   - Detects package installations vs manual installations
+   - Identifies dpkg corruption and offers automatic fixes
+   - Scans multiple system locations for files
 
-# Run components with verbose output
-battery-indicator --verbose
-```
+2. **💾 Safe Removal with Backup**:
+   - Creates timestamped backups before any removal
+   - Safely removes files from all possible locations
+   - Preserves important system configurations
 
-#### Check System Logs
+3. **🔧 System Repair**:
+   - Fixes corrupted dpkg status files
+   - Cleans orphaned package entries
+   - Updates system databases after removal
 
-```bash
-# Check for battery-related errors
-journalctl -u battery-* --since "1 hour ago"
+4. **📊 Comprehensive Reporting**:
+   - Detailed logging of all actions
+   - Verification of removal completeness
+   - Reports any remaining files or processes
 
-# Check system log for GTK errors
-journalctl --since "1 hour ago" | grep -i gtk
-```
-
-#### Alternative Battery Paths
-
-If your system uses a different battery path:
-
-```bash
-# Find your battery path
-find /sys/class/power_supply -name "charge_control_end_threshold"
-
-# Update the scripts to use your battery path
-# Edit battery-cli, set-charge-limit.sh, etc.
-```
-
-### 🌟 Best Practices
-
-1. **Always run diagnostic script first**: `./diagnose-and-fix.sh`
-2. **Use the launcher for system tray**: `battery-indicator-launcher`
-3. **Check battery support before installation**: Verify threshold files exist
-4. **Keep dependencies updated**: `sudo apt update && sudo apt upgrade`
-5. **Use GUI for complex operations**: `battery-gui` is more reliable than indicator
-
-### 📞 Getting Help
-
-If you're still experiencing issues:
-
-1. **Run the comprehensive diagnostic**:
-   ```bash
-   ./diagnose-and-install.sh
-   ```
-
-2. **Check the logs**:
-   ```bash
-   ./view-logs.sh errors    # View all errors
-   ./view-logs.sh summary   # View log summary
-   ./view-logs.sh all       # View all logs
-   ```
-
-3. **Collect system information**:
-   ```bash
-   # System info
-   uname -a
-   lsb_release -a
-   python3 --version
-
-   # Battery info
-   ls -la /sys/class/power_supply/
-
-   # Installation info
-   which battery-cli battery-gui battery-indicator
-
-   # Recent logs
-   ./view-logs.sh install | tail -50
-   ```
-
-4. **Check the project's GitHub issues**
-
-5. **When reporting issues, include**:
-   - Output from `./diagnose-and-install.sh`
-   - Error logs from `./view-logs.sh errors`
-   - System information from the commands above
-   - Steps to reproduce the issue
-
-### 🔍 Advanced Troubleshooting with Logs
-
-#### Analyzing Installation Issues
+#### **Usage Examples:**
 
 ```bash
-# Check installation log for errors
-./view-logs.sh install | grep -i error
+# Standard comprehensive uninstall
+./uninstall.sh
 
-# Check what happened during dependency installation
-./view-logs.sh install | grep -A 5 -B 5 "Installing dependencies"
+# Force fix dpkg corruption during uninstall
+./uninstall.sh --fix-dpkg
 
-# Check if all files were copied correctly
-./view-logs.sh install | grep -i "copy\|install"
+# Check uninstall logs
+cat ~/.local/share/battery-limiter/logs/uninstall.log
+
+# Verify backup location
+ls -la ./backups/uninstall-*/
 ```
 
-#### Analyzing Runtime Issues
+#### **What Gets Removed:**
+
+**Executables from all locations:**
+- `/usr/local/bin/battery-*`
+- `/usr/bin/battery-*`
+- `~/.local/bin/battery-*`
+- All launcher scripts and aliases
+
+**Configuration and Data:**
+- `~/.config/battery-limiter/`
+- `~/.local/share/battery-limiter/`
+- `~/.cache/battery-limiter/`
+- `/etc/battery-limiter/`
+
+**System Integration:**
+- Autostart files from `~/.config/autostart/` and `/etc/xdg/autostart/`
+- Desktop entries from `/usr/share/applications/` and `~/.local/share/applications/`
+- Sudo permissions from `/etc/sudoers.d/`
+- Systemd services (both system and user)
+
+**Environment Cleanup:**
+- Shell aliases and exports from `.bashrc`, `.zshrc`, `.profile`
+- Environment variables
+- Package manager entries (with corruption fix)
+
+**System Database Updates:**
+- Desktop database refresh
+- Icon cache update
+- MIME database update
+- Package cache cleanup
+
+#### **Recovery Options:**
+
+If you need to recover after uninstall:
 
 ```bash
-# Check GUI errors
-./view-logs.sh runtime | grep -i error
+# Restore from backup
+BACKUP_DIR="./backups/uninstall-YYYYMMDD_HHMMSS"
+sudo cp "$BACKUP_DIR/battery-cli" /usr/local/bin/
+sudo cp "$BACKUP_DIR/battery-gui" /usr/local/bin/
+# ... restore other files as needed
 
-# Check system tray issues
-tail -f ~/.local/share/battery-limiter/logs/indicator.log
-
-# Check battery status changes
-./view-logs.sh all | grep -i "battery.*status"
+# Or reinstall fresh
+./install.sh
 ```
 
-#### Debug Mode
-
-Enable debug mode for detailed logging:
+#### **Troubleshooting Uninstall Issues:**
 
 ```bash
-# Enable debug mode for Python components
-export BATTERY_DEBUG=1
+# If uninstall script fails
+sudo pkill -f battery  # Force stop all processes
+sudo rm -rf /usr/local/bin/battery-*  # Manual removal
+./uninstall.sh --fix-dpkg  # Fix package manager
 
-# Run with debug output
-battery-gui --debug
-battery-indicator --verbose
+# If dpkg corruption persists
+sudo cp /var/lib/dpkg/status /var/lib/dpkg/status.backup
+sudo dpkg --configure -a
 
-# Check debug logs
-tail -f ~/.local/share/battery-limiter/logs/debug.log
+# Check for remaining traces
+find /usr -name "*battery*" 2>/dev/null
+find ~ -name "*battery*" 2>/dev/null
 ```
-
-### 🛠️ Log Management
-
-#### Automated Log Rotation
-
-Logs are automatically rotated when they exceed 10MB:
-
-```bash
-# Check log sizes
-./view-logs.sh summary
-
-# Manually rotate logs
-./logging-system.sh rotate
-
-# Clear old logs
-./logging-system.sh clear
-```
-
-#### Log Analysis Commands
-
-```bash
-# Find specific errors
-grep -r "ImportError\|ModuleNotFoundError" ~/.local/share/battery-limiter/logs/
-
-# Find battery-related issues
-grep -r "battery\|threshold\|charge" ~/.local/share/battery-limiter/logs/
-
-# Find GUI-related issues
-grep -r "gtk\|tkinter\|display" ~/.local/share/battery-limiter/logs/
-
-# Find system tray issues
-grep -r "indicator\|appindicator\|tray" ~/.local/share/battery-limiter/logs/
-```
-
-### 🔧 Script Improvements Made
-
-The following improvements were made to handle common errors:
-
-#### **Comprehensive Logging System Added** ✅
-- **Installation Logging**: All installation steps logged to `~/.local/share/battery-limiter/logs/install.log`
-- **Error Logging**: Detailed error tracking in `~/.local/share/battery-limiter/logs/error.log`
-- **System Logging**: General application logs in `~/.local/share/battery-limiter/logs/system.log`
-- **Debug Logging**: Detailed debug information in `~/.local/share/battery-limiter/logs/debug.log`
-- **Component Logs**: Individual logs for GUI, indicator, and other components
-
-#### **Logging Management Commands**:
-```bash
-# View log status
-./logging-system.sh show
-
-# Collect full system information
-./logging-system.sh info
-
-# Clear all logs
-./logging-system.sh clear
-
-# Rotate large logs
-./logging-system.sh rotate
-
-# Follow logs in real-time
-tail -f ~/.local/share/battery-limiter/logs/install.log
-tail -f ~/.local/share/battery-limiter/logs/error.log
-tail -f ~/.local/share/battery-limiter/logs/system.log
-```
-
-#### **What Gets Logged During Installation**:
-- ✅ Complete system information (OS, kernel, desktop environment)
-- ✅ Battery system details (available batteries, threshold files)
-- ✅ Package manager status and dependency installation
-- ✅ Python environment and library availability
-- ✅ File installation and permission setting
-- ✅ Process creation and startup status
-- ✅ All errors with full context and timestamps
-
-#### **Application Runtime Logging**:
-- ✅ GUI application startup and errors (`gui.log`)
-- ✅ System tray indicator status (`indicator.log`)
-- ✅ Battery monitoring and notifications
-- ✅ User actions and battery limit changes
-- ✅ Library conflicts and environment issues
-
-#### `install.sh`:
-- ✅ Better dependency checking and error handling
-- ✅ Automatic creation of library conflict launcher
-- ✅ Graceful handling of package manager issues
-- ✅ Improved autostart configuration
-
-#### `uninstall.sh`:
-- ✅ Safe package manager checking
-- ✅ Removal of all launcher scripts
-- ✅ Better error handling for missing components
-
-#### `battery-cli`:
-- ✅ Multi-battery system support (BAT0, BAT1, etc.)
-- ✅ Better error detection and reporting
-- ✅ Improved file validation
-
-#### `battery-indicator`:
-- ✅ Library conflict detection and handling
-- ✅ Better GTK import error handling
-- ✅ Snap package environment compatibility
-
-#### `set-charge-limit.sh`:
-- ✅ Auto-detection of battery threshold files
-- ✅ Enhanced input validation
-- ✅ Better error messages
-
-#### New Scripts:
-- ✅ `diagnose-and-fix.sh` - Comprehensive system diagnostic
-- ✅ `battery-indicator-launcher` - Library conflict resolver

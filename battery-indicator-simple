@@ -1,0 +1,217 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+from datetime import datetime
+
+# Add the project directory to Python path for imports
+script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, script_dir)
+
+# Import centralized logger
+try:
+    from battery_logger import get_logger
+    logger = get_logger('battery-indicator-simple')
+    logger.info("Using centralized logging system")
+except ImportError as e:
+    # Fallback to basic logging if centralized logger is not available
+    import logging
+    LOG_DIR = os.path.expanduser("~/.local/share/battery-limiter/logs")
+    os.makedirs(LOG_DIR, exist_ok=True)
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='[%(asctime)s] [%(levelname)s] %(message)s',
+        handlers=[
+            logging.FileHandler(os.path.join(LOG_DIR, 'indicator.log')),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+    
+    logger = logging.getLogger('battery-indicator-simple')
+    logger.warning(f"Centralized logger not available, using fallback: {e}")
+
+# Handle library conflicts with snap packages
+if 'SNAP' in os.environ:
+    logger.warning("Detected snap environment, cleaning up...")
+    # Clear problematic environment variables when running in snap environment
+    snap_vars = [var for var in os.environ.keys() if var.startswith('SNAP')]
+    for var in snap_vars + ['LD_LIBRARY_PATH', 'PYTHONPATH']:
+        if var in os.environ:
+            logger.info(f"Removing environment variable: {var}")
+            del os.environ[var]
+    
+    # Add system library paths
+    sys.path.insert(0, '/usr/lib/python3/dist-packages')
+    sys.path.insert(0, '/usr/local/lib/python3/dist-packages')
+    logger.info("Environment cleaned for snap compatibility")
+
+try:
+    logger.info("Importing GTK libraries...")
+    import gi
+    gi.require_version('Gtk', '3.0')
+    gi.require_version('AppIndicator3', '0.1')
+    from gi.repository import Gtk, AppIndicator3, GLib
+    logger.info("GTK libraries imported successfully")
+except ImportError as e:
+    logger.error(f"Error importing GTK libraries: {e}")
+    sys.exit(1)
+
+import subprocess
+import threading
+import time
+
+class SimpleBatteryIndicator:
+    def __init__(self):
+        logger.info("Initializing Simple Battery Indicator...")
+        
+        # Create indicator
+        self.indicator = AppIndicator3.Indicator.new(
+            "battery-limiter",
+            "battery",
+            AppIndicator3.IndicatorCategory.SYSTEM_SERVICES
+        )
+        
+        # Set indicator status
+        self.indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
+        logger.info("AppIndicator3 indicator created and activated")
+        
+        # Create menu
+        self.create_menu()
+        
+        # Start battery monitoring
+        self.start_monitoring()
+        
+        logger.info("Simple Battery Indicator initialized successfully")
+    
+    def create_menu(self):
+        """Create the indicator menu"""
+        menu = Gtk.Menu()
+        
+        # Battery status item
+        self.status_item = Gtk.MenuItem(label="Loading...")
+        self.status_item.set_sensitive(False)
+        menu.append(self.status_item)
+        
+        # Separator
+        separator = Gtk.SeparatorMenuItem()
+        menu.append(separator)
+        
+        # Open GUI item
+        gui_item = Gtk.MenuItem(label="Open Battery GUI")
+        gui_item.connect('activate', self.open_gui)
+        menu.append(gui_item)
+        
+        # Separator
+        separator2 = Gtk.SeparatorMenuItem()
+        menu.append(separator2)
+        
+        # Quit item
+        quit_item = Gtk.MenuItem(label="Quit")
+        quit_item.connect('activate', self.quit)
+        menu.append(quit_item)
+        
+        menu.show_all()
+        self.indicator.set_menu(menu)
+        logger.info("Menu created successfully")
+    
+    def get_battery_info(self):
+        """Get current battery information"""
+        try:
+            # Try to get battery info
+            with open('/sys/class/power_supply/BAT0/capacity', 'r') as f:
+                capacity = int(f.read().strip())
+            
+            with open('/sys/class/power_supply/BAT0/status', 'r') as f:
+                status = f.read().strip()
+            
+            try:
+                with open('/sys/class/power_supply/BAT0/charge_control_end_threshold', 'r') as f:
+                    limit = int(f.read().strip())
+            except:
+                limit = 100
+            
+            return capacity, status, limit
+        except Exception as e:
+            logger.error(f"Error reading battery info: {e}")
+            return None, None, None
+    
+    def update_status(self):
+        """Update the indicator status"""
+        capacity, status, limit = self.get_battery_info()
+        
+        if capacity is not None:
+            # Simple icon selection based on capacity
+            if capacity >= 80:
+                icon_name = "battery-full"
+            elif capacity >= 60:
+                icon_name = "battery-good"
+            elif capacity >= 40:
+                icon_name = "battery-low"
+            elif capacity >= 20:
+                icon_name = "battery-caution"
+            else:
+                icon_name = "battery-empty"
+            
+            # Add charging indicator
+            if status == "Charging":
+                icon_name += "-charging"
+            
+            # Update icon
+            self.indicator.set_icon(icon_name)
+            
+            # Update menu text
+            status_text = f"Battery: {capacity}% ({status})"
+            if limit < 100:
+                status_text += f", Limit: {limit}%"
+            
+            self.status_item.set_label(status_text)
+            
+            logger.debug(f"Status updated: {status_text}")
+        else:
+            self.status_item.set_label("Battery info unavailable")
+            logger.warning("Could not read battery information")
+        
+        return True  # Continue the timer
+    
+    def start_monitoring(self):
+        """Start battery monitoring"""
+        logger.info("Starting battery monitoring...")
+        # Update immediately
+        self.update_status()
+        # Then update every 30 seconds
+        GLib.timeout_add_seconds(30, self.update_status)
+    
+    def open_gui(self, widget):
+        """Open the battery GUI"""
+        try:
+            subprocess.Popen(['battery-gui'])
+            logger.info("Battery GUI launched")
+        except Exception as e:
+            logger.error(f"Failed to launch battery GUI: {e}")
+    
+    def quit(self, widget):
+        """Quit the indicator"""
+        logger.info("Quitting battery indicator...")
+        Gtk.main_quit()
+
+def main():
+    logger.info("=== SIMPLE BATTERY INDICATOR STARTING ===")
+    
+    try:
+        # Create indicator
+        indicator = SimpleBatteryIndicator()
+        
+        # Run GTK main loop
+        logger.info("Starting GTK main loop...")
+        Gtk.main()
+        
+    except KeyboardInterrupt:
+        logger.info("Received keyboard interrupt, exiting...")
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}", exc_info=True)
+    finally:
+        logger.info("Simple Battery Indicator stopped")
+
+if __name__ == "__main__":
+    main()

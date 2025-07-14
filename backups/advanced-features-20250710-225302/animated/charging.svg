@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- Battery outline -->
+  <rect x="3" y="7" width="16" height="10" rx="2" ry="2" 
+        fill="none" stroke="#333" stroke-width="1.5"/>
+  
+  <!-- Battery terminal -->
+  <rect x="19" y="10" width="2" height="4" rx="0.5" ry="0.5" 
+        fill="#333"/>
+  
+  <!-- Animated charging fill -->
+  <rect x="5" y="9" width="12" height="6" rx="1" ry="1" 
+        fill="#4CAF50" opacity="0.8">
+    <animate attributeName="width" 
+             values="0;3;6;9;12;12;9;6;3;0" 
+             dur="2s" 
+             repeatCount="indefinite"/>
+    <animate attributeName="opacity" 
+             values="0.3;0.6;0.8;1.0;1.0;0.8;0.6;0.4;0.3;0.3" 
+             dur="2s" 
+             repeatCount="indefinite"/>
+  </rect>
+  
+  <!-- Charging bolt icon -->
+  <g transform="translate(12, 12)">
+    <path d="M-2,-4 L2,-1 L0,-1 L2,4 L-2,1 L0,1 Z" 
+          fill="#FFD700" opacity="0.9">
+      <animateTransform attributeName="transform"
+                        type="scale"
+                        values="0.8;1.2;0.8"
+                        dur="1s"
+                        repeatCount="indefinite"/>
+      <animate attributeName="opacity"
+               values="0.5;1.0;0.5"
+               dur="1s"
+               repeatCount="indefinite"/>
+    </path>
+  </g>
+</svg>
