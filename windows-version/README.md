@@ -54,20 +54,34 @@ This is the Windows 11 compatible version of Universal Battery Limiter, designed
 
 ### 🔧 **Installation**
 
-#### **Method 1: Automatic Installation (Recommended)**
+#### **Method 1: Professional Installer (Recommended)**
 
-1. **Download** the Windows version folder
-2. **Right-click** on `install.bat` and select "Run as administrator"
-3. **Follow** the installation prompts
-4. **Launch** from desktop shortcut
+1. **Download** the latest release: `UniversalBatteryLimiter_v2.2.0_Setup.exe`
+2. **Right-click** and select "Run as administrator"
+3. **Follow** the installation wizard
+4. **Launch** from Start Menu or Desktop shortcut
+5. **Optional**: Enable auto-start with Windows
 
-#### **Method 2: Manual Installation**
+#### **Method 2: Build from Source**
+
+```cmd
+# Clone the repository
+git clone https://github.com/FrancyAlinston/Battery-Limter.git
+cd Battery-Limter/windows-version
+
+# Create professional installer
+install.bat
+
+# This creates UniversalBatteryLimiter_v2.2.0_Setup.exe
+```
+
+#### **Method 3: Direct Python Execution**
 
 ```cmd
 # Install Python dependencies
 pip install -r requirements.txt
 
-# Run the application
+# Run the application directly
 python battery_limiter_windows.py
 ```
 

@@ -8,10 +8,15 @@ pystray>=0.19.4               # System tray integration
 Pillow>=8.0.0                 # Image processing for tray icons
 
 # GUI and utilities
-tkinter                       # GUI framework (usually included with Python)
 pathlib                       # Path handling (Python 3.4+)
-
-# Optional but recommended
 psutil>=5.8.0                 # System and process utilities
 requests>=2.25.0              # For update checking
+
+# Build tools (for creating .exe installer)
+PyInstaller>=4.5.1            # Primary executable builder
+cx-Freeze>=6.8                # Alternative executable builder
 setuptools>=50.0.0            # For packaging
+
+# Optional development tools
+py2exe>=0.10.3.0              # Windows-specific executable builder (Windows only)
+nsis>=3.0                     # NSIS installer compiler (optional)

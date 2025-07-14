@@ -88,18 +88,20 @@ def run_demo():
     # Show installation methods
     print_header("Installation Methods")
     
-    print("1. 🚀 Quick Install (Recommended)")
-    print("   - Run install.bat as Administrator")
-    print("   - Automatic dependency installation")
-    print("   - Desktop shortcut creation")
+    print("1. 🚀 Professional Installer (Recommended)")
+    print("   - Download: UniversalBatteryLimiter_v2.2.0_Setup.exe")
+    print("   - Run as Administrator")
+    print("   - Follow installation wizard")
+    print("   - Auto-creates shortcuts and registry entries")
     
-    print("\n2. 📦 Manual Install")
+    print("\n2. � Build from Source")
+    print("   - Run install.bat as Administrator")
+    print("   - Creates professional .exe installer")
+    print("   - Uses PyInstaller + NSIS for packaging")
+    
+    print("\n3. � Direct Python Execution")
     print("   - pip install -r requirements.txt")
     print("   - python battery_limiter_windows.py")
-    
-    print("\n3. 🔧 Developer Install")
-    print("   - python setup.py build")
-    print("   - Creates standalone executable")
     
     # Show usage examples
     print_header("Usage Examples")

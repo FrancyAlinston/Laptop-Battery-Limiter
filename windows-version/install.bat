@@ -1,10 +1,10 @@
 @echo off
 REM Universal Battery Limiter - Windows 11 Installation Script
-REM Installs dependencies and sets up the battery limiter
+REM Creates professional .exe installer for distribution
 
 echo ============================================
 echo Universal Battery Limiter - Windows 11
-echo Installation Script
+echo Professional Installer Creator
 echo ============================================
 echo.
 
@@ -32,22 +32,35 @@ if errorlevel 1 (
 echo ✓ pip found
 echo.
 
-REM Install required packages
-echo Installing required Python packages...
+REM Run the professional installer creator
+echo Creating professional Windows installer...
 echo.
-pip install -r requirements.txt
+python create_installer.py
 
 if errorlevel 1 (
     echo.
-    echo ERROR: Failed to install some packages
-    echo Trying individual installation...
-    echo.
-    
-    pip install wmi
-    pip install pywin32
-    pip install pystray
-    pip install Pillow
-    pip install psutil
+    echo ERROR: Failed to create installer
+    echo Please check the error messages above
+    pause
+    exit /b 1
+)
+
+echo.
+echo ✅ Installer creation completed!
+echo.
+echo Files created:
+if exist "UniversalBatteryLimiter_v2.2.0_Setup.exe" (
+    echo   📦 UniversalBatteryLimiter_v2.2.0_Setup.exe - Professional installer
+) else (
+    echo   📦 dist\Install_BatteryLimiter.bat - Fallback installer
+)
+echo   📁 dist\UniversalBatteryLimiter.exe - Main application
+echo   📁 dist\battery-cli.exe - Command line interface
+echo.
+echo 🚀 Ready for distribution!
+echo Share the installer file with users for easy installation.
+echo.
+pause
     pip install requests
 )
 

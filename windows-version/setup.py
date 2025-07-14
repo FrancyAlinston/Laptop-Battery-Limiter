@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
 Universal Battery Limiter - Windows Setup Script
-Creates executable and installer for Windows distribution
+Creates executable installer (.exe) for Windows distribution
 """
 
 import sys
 import os
 from pathlib import Path
+import shutil
 
 try:
     from cx_Freeze import setup, Executable
@@ -15,6 +16,13 @@ except ImportError:
     CX_FREEZE_AVAILABLE = False
 
 try:
+    import PyInstaller
+    PYINSTALLER_AVAILABLE = True
+except ImportError:
+    PYINSTALLER_AVAILABLE = False
+
+try:
+    from setuptools import setup as setuptools_setup
     import py2exe
     PY2EXE_AVAILABLE = True
 except ImportError:
@@ -22,18 +30,24 @@ except ImportError:
 
 # Application information
 APP_NAME = "Universal Battery Limiter"
-APP_VERSION = "1.0.0"
-APP_DESCRIPTION = "Battery charge management for Windows 11 laptops"
+APP_VERSION = "2.2.0"
+APP_DESCRIPTION = "Professional battery charge management for Windows 11 laptops"
 APP_AUTHOR = "FrancyAlinston"
 APP_URL = "https://github.com/FrancyAlinston/Battery-Limter"
+APP_ICON = "icons/battery-icon.ico"  # We'll create this
 
-# Files to include
+# Files to include in the installer
 include_files = [
-    "README.md",
-    "config.json",
-    "battery_manager.ps1",
-    "requirements.txt"
+    ("README.md", "README.md"),
+    ("config.json", "config.json"),
+    ("battery_manager.ps1", "battery_manager.ps1"),
+    ("requirements.txt", "requirements.txt"),
+    ("DEVELOPMENT.md", "DEVELOPMENT.md"),
+    ("icons/", "icons/") if os.path.exists("icons") else None
 ]
+
+# Remove None entries
+include_files = [f for f in include_files if f is not None]
 
 # Packages to include
 packages = [
@@ -45,8 +59,236 @@ packages = [
     "time",
     "sys",
     "os",
-    "platform"
+    "platform",
+    "winreg",
+    "wmi",
+    "win32api",
+    "win32con",
+    "win32gui",
+    "pystray",
+    "PIL"
 ]
+
+# Modules to exclude (reduce size)
+excludes = [
+    "unittest",
+    "test",
+    "distutils",
+    "setuptools",
+    "numpy",
+    "matplotlib"
+]
+
+def create_cx_freeze_setup():
+    """Create cx_Freeze executable setup"""
+    if not CX_FREEZE_AVAILABLE:
+        return None
+    
+    base = None
+    if sys.platform == "win32":
+        base = "Win32GUI"  # Use this for GUI applications
+
+    executables = [
+        Executable(
+            "battery_limiter_windows.py",
+            base=base,
+            icon=APP_ICON if os.path.exists(APP_ICON) else None,
+            target_name="BatteryLimiter.exe",
+            shortcut_name="Universal Battery Limiter",
+            shortcut_dir="ProgramMenuFolder"
+        ),
+        Executable(
+            "battery_cli.py",
+            base=None,  # Console application
+            target_name="battery-cli.exe"
+        )
+    ]
+
+    build_exe_options = {
+        "packages": packages,
+        "excludes": excludes,
+        "include_files": include_files,
+        "build_exe": "build/exe.win-amd64-3.x",
+        "optimize": 2,
+        "include_msvcrt": True
+    }
+
+    return {
+        "name": APP_NAME,
+        "version": APP_VERSION,
+        "description": APP_DESCRIPTION,
+        "author": APP_AUTHOR,
+        "url": APP_URL,
+        "executables": executables,
+        "options": {"build_exe": build_exe_options}
+    }
+
+def create_pyinstaller_spec():
+    """Create PyInstaller spec file for executable generation"""
+    spec_content = f'''# -*- mode: python ; coding: utf-8 -*-
+
+block_cipher = None
+
+a = Analysis(
+    ['battery_limiter_windows.py'],
+    pathex=[],
+    binaries=[],
+    datas=[
+        ('config.json', '.'),
+        ('README.md', '.'),
+        ('battery_manager.ps1', '.'),
+        ('requirements.txt', '.'),
+    ],
+    hiddenimports=[
+        'wmi',
+        'win32api',
+        'win32con',
+        'win32gui',
+        'pystray',
+        'PIL'
+    ],
+    hookspath=[],
+    hooksconfig={{}},
+    runtime_hooks=[],
+    excludes={excludes},
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
+    noarchive=False,
+)
+
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    [],
+    name='UniversalBatteryLimiter',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    runtime_tmpdir=None,
+    console=False,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+    icon='{APP_ICON if os.path.exists(APP_ICON) else "NONE"}',
+    version='{APP_VERSION}',
+)
+'''
+    
+    with open("battery_limiter.spec", "w") as f:
+        f.write(spec_content)
+    
+    return "battery_limiter.spec"
+
+def create_nsis_installer_script():
+    """Create NSIS installer script for professional Windows installer"""
+    nsis_script = f'''# Universal Battery Limiter - Windows Installer Script
+# Generated by setup.py
+
+!define APP_NAME "{APP_NAME}"
+!define APP_VERSION "{APP_VERSION}"
+!define APP_PUBLISHER "{APP_AUTHOR}"
+!define APP_URL "{APP_URL}"
+!define APP_EXECUTABLE "UniversalBatteryLimiter.exe"
+
+# Modern UI
+!include "MUI2.nsh"
+
+# General
+Name "${{APP_NAME}}"
+OutFile "UniversalBatteryLimiter_v${{APP_VERSION}}_Setup.exe"
+Unicode True
+InstallDir "$PROGRAMFILES64\\${{APP_NAME}}"
+InstallDirRegKey HKCU "Software\\${{APP_NAME}}" ""
+RequestExecutionLevel admin
+
+# Interface Settings
+!define MUI_ABORTWARNING
+!define MUI_ICON "icons\\battery-icon.ico"
+!define MUI_UNICON "icons\\battery-icon.ico"
+
+# Pages
+!insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_LICENSE "LICENSE"
+!insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_INSTFILES
+!insertmacro MUI_PAGE_FINISH
+
+!insertmacro MUI_UNPAGE_WELCOME
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+!insertmacro MUI_UNPAGE_FINISH
+
+# Languages
+!insertmacro MUI_LANGUAGE "English"
+
+# Installer Sections
+Section "Main Application" SecMain
+    SetOutPath "$INSTDIR"
+    
+    # Application files
+    File "dist\\${{APP_EXECUTABLE}}"
+    File "dist\\battery-cli.exe"
+    File "config.json"
+    File "README.md"
+    File "battery_manager.ps1"
+    
+    # Create shortcuts
+    CreateDirectory "$SMPROGRAMS\\${{APP_NAME}}"
+    CreateShortcut "$SMPROGRAMS\\${{APP_NAME}}\\${{APP_NAME}}.lnk" "$INSTDIR\\${{APP_EXECUTABLE}}"
+    CreateShortcut "$SMPROGRAMS\\${{APP_NAME}}\\Uninstall.lnk" "$INSTDIR\\Uninstall.exe"
+    CreateShortcut "$DESKTOP\\${{APP_NAME}}.lnk" "$INSTDIR\\${{APP_EXECUTABLE}}"
+    
+    # Registry entries
+    WriteRegStr HKCU "Software\\${{APP_NAME}}" "" $INSTDIR
+    WriteRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${{APP_NAME}}" "DisplayName" "${{APP_NAME}}"
+    WriteRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${{APP_NAME}}" "UninstallString" "$INSTDIR\\Uninstall.exe"
+    WriteRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${{APP_NAME}}" "DisplayVersion" "${{APP_VERSION}}"
+    WriteRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${{APP_NAME}}" "Publisher" "${{APP_PUBLISHER}}"
+    WriteRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${{APP_NAME}}" "URLInfoAbout" "${{APP_URL}}"
+    
+    # Create uninstaller
+    WriteUninstaller "$INSTDIR\\Uninstall.exe"
+SectionEnd
+
+# Uninstaller Section
+Section "Uninstall"
+    # Remove files
+    Delete "$INSTDIR\\${{APP_EXECUTABLE}}"
+    Delete "$INSTDIR\\battery-cli.exe"
+    Delete "$INSTDIR\\config.json"
+    Delete "$INSTDIR\\README.md"
+    Delete "$INSTDIR\\battery_manager.ps1"
+    Delete "$INSTDIR\\Uninstall.exe"
+    
+    # Remove shortcuts
+    Delete "$SMPROGRAMS\\${{APP_NAME}}\\${{APP_NAME}}.lnk"
+    Delete "$SMPROGRAMS\\${{APP_NAME}}\\Uninstall.lnk"
+    Delete "$DESKTOP\\${{APP_NAME}}.lnk"
+    RMDir "$SMPROGRAMS\\${{APP_NAME}}"
+    
+    # Remove registry entries
+    DeleteRegKey HKCU "Software\\${{APP_NAME}}"
+    DeleteRegKey HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${{APP_NAME}}"
+    
+    # Remove installation directory
+    RMDir "$INSTDIR"
+SectionEnd
+'''
+    
+    with open("installer.nsi", "w") as f:
+        f.write(nsis_script)
+    
+    return "installer.nsi"
 
 # Packages to exclude (if not available on target system)
 excludes = [
@@ -252,43 +494,237 @@ SectionEnd
     
     print("Created installer.nsi - Use NSIS to compile the installer")
 
+def build_executable():
+    """Build executable using available tools"""
+    print("🚀 Building Universal Battery Limiter Windows Executable...")
+    
+    # Create directories
+    os.makedirs("dist", exist_ok=True)
+    os.makedirs("build", exist_ok=True)
+    os.makedirs("icons", exist_ok=True)
+    
+    # Create a simple icon if it doesn't exist
+    create_default_icon()
+    
+    success = False
+    
+    # Try PyInstaller first (most reliable)
+    if PYINSTALLER_AVAILABLE:
+        print("📦 Using PyInstaller...")
+        try:
+            spec_file = create_pyinstaller_spec()
+            result = os.system(f"pyinstaller {spec_file} --noconfirm")
+            if result == 0:
+                print("✅ PyInstaller build successful!")
+                success = True
+            else:
+                print("❌ PyInstaller build failed")
+        except Exception as e:
+            print(f"❌ PyInstaller error: {e}")
+    
+    # Try cx_Freeze if PyInstaller failed
+    if not success and CX_FREEZE_AVAILABLE:
+        print("📦 Using cx_Freeze...")
+        try:
+            setup_config = create_cx_freeze_setup()
+            if setup_config:
+                setup(**setup_config)
+                print("✅ cx_Freeze build successful!")
+                success = True
+        except Exception as e:
+            print(f"❌ cx_Freeze error: {e}")
+    
+    # Try py2exe if others failed (Windows only)
+    if not success and PY2EXE_AVAILABLE and sys.platform == "win32":
+        print("📦 Using py2exe...")
+        try:
+            setup_py2exe()
+            print("✅ py2exe build successful!")
+            success = True
+        except Exception as e:
+            print(f"❌ py2exe error: {e}")
+    
+    if not success:
+        print("❌ No suitable build tool available!")
+        print("Install one of: PyInstaller, cx_Freeze, or py2exe")
+        return False
+    
+    return True
+
+def setup_py2exe():
+    """Setup py2exe configuration"""
+    setuptools_setup(
+        name=APP_NAME,
+        version=APP_VERSION,
+        description=APP_DESCRIPTION,
+        author=APP_AUTHOR,
+        url=APP_URL,
+        windows=[{
+            "script": "battery_limiter_windows.py",
+            "icon_resources": [(1, APP_ICON)] if os.path.exists(APP_ICON) else []
+        }],
+        console=[{
+            "script": "battery_cli.py"
+        }],
+        options={
+            "py2exe": {
+                "packages": packages,
+                "excludes": excludes,
+                "include_files": include_files,
+                "optimize": 2,
+                "compressed": True,
+                "bundle_files": 1
+            }
+        },
+        zipfile=None
+    )
+
+def create_default_icon():
+    """Create a default icon if none exists"""
+    icon_path = "icons/battery-icon.ico"
+    if not os.path.exists(icon_path):
+        try:
+            from PIL import Image, ImageDraw
+            
+            # Create a simple battery icon
+            size = (64, 64)
+            image = Image.new('RGBA', size, (0, 0, 0, 0))
+            draw = ImageDraw.Draw(image)
+            
+            # Battery outline
+            draw.rectangle([10, 20, 50, 50], outline='green', width=3, fill='lightgreen')
+            # Battery terminal
+            draw.rectangle([50, 28, 55, 42], outline='green', width=2, fill='green')
+            # Charge indicator
+            draw.polygon([(20, 25), (30, 35), (25, 35), (35, 45), (25, 35), (30, 35)], fill='white')
+            
+            # Save as ICO
+            image.save(icon_path, format='ICO', sizes=[(16,16), (32,32), (48,48), (64,64)])
+            print(f"✅ Created default icon: {icon_path}")
+            
+        except Exception as e:
+            print(f"⚠️ Could not create icon: {e}")
+
+def create_installer():
+    """Create Windows installer"""
+    print("🔧 Creating Windows installer...")
+    
+    # Create NSIS script
+    nsis_script = create_nsis_installer_script()
+    
+    # Try to compile with NSIS
+    try:
+        result = os.system(f"makensis {nsis_script}")
+        if result == 0:
+            print("✅ NSIS installer created successfully!")
+            return True
+        else:
+            print("❌ NSIS compilation failed")
+    except Exception as e:
+        print(f"❌ NSIS error: {e}")
+    
+    # Alternative: Create a simple batch installer
+    create_batch_installer()
+    return True
+
+def create_batch_installer():
+    """Create a fallback batch installer"""
+    installer_content = f'''@echo off
+echo Installing {APP_NAME} v{APP_VERSION}...
+
+REM Create program directory
+mkdir "%PROGRAMFILES%\\{APP_NAME}" 2>nul
+
+REM Copy files
+copy "UniversalBatteryLimiter.exe" "%PROGRAMFILES%\\{APP_NAME}\\" >nul
+copy "battery-cli.exe" "%PROGRAMFILES%\\{APP_NAME}\\" >nul
+copy "config.json" "%PROGRAMFILES%\\{APP_NAME}\\" >nul
+copy "README.md" "%PROGRAMFILES%\\{APP_NAME}\\" >nul
+
+REM Create desktop shortcut
+echo [InternetShortcut] > "%USERPROFILE%\\Desktop\\{APP_NAME}.lnk"
+echo URL=file:///%PROGRAMFILES%\\{APP_NAME}\\UniversalBatteryLimiter.exe >> "%USERPROFILE%\\Desktop\\{APP_NAME}.lnk"
+
+REM Create start menu entry
+mkdir "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\{APP_NAME}" 2>nul
+echo [InternetShortcut] > "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\{APP_NAME}\\{APP_NAME}.lnk"
+echo URL=file:///%PROGRAMFILES%\\{APP_NAME}\\UniversalBatteryLimiter.exe >> "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\{APP_NAME}\\{APP_NAME}.lnk"
+
+echo ✅ Installation complete!
+echo You can now run {APP_NAME} from the Start Menu or Desktop shortcut.
+pause
+'''
+    
+    with open("dist/Install_BatteryLimiter.bat", "w") as f:
+        f.write(installer_content)
+    
+    print("✅ Batch installer created: dist/Install_BatteryLimiter.bat")
+
 def main():
     """Main setup function"""
-    print(f"Setting up {APP_NAME} v{APP_VERSION}")
+    print(f"🔋 {APP_NAME} v{APP_VERSION} - Windows Setup")
     print("=" * 50)
     
-    if len(sys.argv) < 2:
-        print("Usage: python setup.py [build_exe|py2exe|installer]")
-        print("\nAvailable options:")
-        print("  build_exe  - Create executable using cx_Freeze")
-        print("  py2exe     - Create executable using py2exe")
-        print("  installer  - Create NSIS installer script")
-        return
-    
-    command = sys.argv[1].lower()
-    
-    if command == "build_exe":
-        if setup_cx_freeze():
-            print("✅ Executable created successfully using cx_Freeze")
-            print("Check the 'build' directory for output")
+    if len(sys.argv) > 1:
+        command = sys.argv[1].lower()
+        
+        if command == "build":
+            if build_executable():
+                print("\n🎉 Build completed successfully!")
+                print("📁 Executable files are in the 'dist' directory")
+            else:
+                print("\n❌ Build failed!")
+                sys.exit(1)
+        
+        elif command == "installer":
+            if build_executable():
+                create_installer()
+                print("\n🎉 Installer created successfully!")
+            else:
+                print("\n❌ Could not create installer - build failed!")
+                sys.exit(1)
+        
+        elif command == "clean":
+            print("🧹 Cleaning build directories...")
+            shutil.rmtree("build", ignore_errors=True)
+            shutil.rmtree("dist", ignore_errors=True)
+            for file in ["battery_limiter.spec", "installer.nsi"]:
+                if os.path.exists(file):
+                    os.remove(file)
+            print("✅ Clean completed!")
+        
         else:
-            print("❌ Failed to create executable with cx_Freeze")
-    
-    elif command == "py2exe":
-        if setup_py2exe():
-            print("✅ Executable created successfully using py2exe")
-            print("Check the 'dist' directory for output")
-        else:
-            print("❌ Failed to create executable with py2exe")
-    
-    elif command == "installer":
-        create_installer_script()
-        print("✅ Installer script created: installer.nsi")
-        print("Use NSIS (Nullsoft Scriptable Install System) to compile")
+            print_usage()
     
     else:
-        print(f"❌ Unknown command: {command}")
-        print("Use: build_exe, py2exe, or installer")
+        print_usage()
+
+def print_usage():
+    """Print usage instructions"""
+    print(f"""
+Usage: python setup.py [command]
+
+Commands:
+  build      Build executable files
+  installer  Build executable and create installer
+  clean      Clean build directories
+
+Requirements:
+  - Python 3.6+
+  - One of: PyInstaller, cx_Freeze, or py2exe
+  - For installer: NSIS (optional, fallback to batch installer)
+
+Examples:
+  python setup.py build          # Create .exe files
+  python setup.py installer      # Create installer package
+  python setup.py clean          # Clean build files
+
+Output:
+  dist/UniversalBatteryLimiter.exe       # Main GUI application
+  dist/battery-cli.exe                   # Command line interface
+  dist/Install_BatteryLimiter.bat        # Installer (fallback)
+  UniversalBatteryLimiter_v{APP_VERSION}_Setup.exe  # NSIS installer (if available)
+""")
 
 if __name__ == "__main__":
     main()

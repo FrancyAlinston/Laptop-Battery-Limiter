@@ -47,21 +47,22 @@ windows-version/
 
 ## 📋 **Installation Methods**
 
-### 1. 🚀 **Quick Install (Recommended)**
+### 1. 🚀 **Professional Installer (Recommended)**
 ```cmd
-# Run as Administrator
+# Download and run as Administrator
+UniversalBatteryLimiter_v2.2.0_Setup.exe
+```
+
+### 2. � **Build from Source**
+```cmd
+# Clone and build professional installer
 install.bat
 ```
 
-### 2. 📦 **Manual Install**
+### 3. 🐍 **Direct Python**
 ```cmd
 pip install -r requirements.txt
 python battery_limiter_windows.py
-```
-
-### 3. 🔧 **Developer Build**
-```cmd
-python setup.py build
 ```
 
 ## 🎯 **Usage Examples**
