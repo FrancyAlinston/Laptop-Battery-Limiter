@@ -6,6 +6,83 @@ dist/
 *.tar.gz
 *.zip
 
+# Generated .deb packages (keep one example but not all versions)
+universal-battery-limiter_*.deb
+*_fixed.deb
+*_no_prerm.deb
+
+# Snap build artifacts  
+*.snap
+snap/.snapcraft/
+prime/
+stage/
+parts/
+
+# Development and temporary files that should never be public
+*-dev.*
+*-development.*
+*-temp.*
+*-tmp.*
+*.tmp
+*.temp
+*.bak
+*~
+*.draft
+*.work
+*.wip
+dev-*
+temp-*
+tmp-*
+draft-*
+work-*
+wip-*
+backups/
+
+# Internal development scripts and tools
+diagnose-and-*.sh
+fix-*.sh
+logging-system.sh
+view-logs.sh
+commit-changes.sh
+build-*.sh
+*-upload.sh
+snap-store-upload.sh
+debian-package-upload.sh
+verify-package.sh
+prepare-github-release.sh
+
+# Development documentation (internal use only)
+DEVELOPMENT_*.md
+INTERNAL_*.md
+TODO_*.md
+NOTES_*.md
+TEMP_*.md
+DEV_*.md
+*_INTERNAL.md
+*_DEV.md
+*_TODO.md
+*_NOTES.md
+COMMIT-GUIDE.md
+GITIGNORE-UPDATE.md
+PACKAGE-INFO.md
+MAINTAINERS.md
+INSTALLATION-VERIFICATION.md
+REPOSITORY-CLEANUP.md
+WORKFLOWS-FIXED.md
+PUBLIC-FILES.md
+
+# Test and development Python files
+test-*.py
+*-test.py
+show-light-mode.py
+battery_logger.py
+validate-workflows.py
+animated_icons.py
+
+# Alternative/backup versions of scripts
+battery-indicator-*
+install-simple.sh
+
 # Python
 __pycache__/
 *.py[cod]
@@ -90,12 +167,14 @@ file-manager-*.sh
 *-manager.sh
 cleanup-*.sh
 
-# Animation testing and development files
-test-animations.py
-animation-test-*.py
-icon-test-*.py
-demo-test-*.py
-animation-debug-*.py
+# Already covered above - removing duplicates
+
+# Animation testing and development files (already covered above)
+# test-animations.py
+# animation-test-*.py  
+# icon-test-*.py
+# demo-test-*.py
+# animation-debug-*.py
 
 # OS generated files
 .DS_Store
@@ -106,7 +185,7 @@ animation-debug-*.py
 ehthumbs.db
 Thumbs.db
 
-# IDE files
+# IDE and workspace files (keep these private)
 .vscode/
 .idea/
 *.swp
