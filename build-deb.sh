@@ -28,9 +28,6 @@ fi
 # Clean up any previous builds
 print_colored $YELLOW "🧹 Cleaning up previous builds..."
 rm -f universal-battery-limiter_*.deb
-# Remove any Python cache files that shouldn't be packaged
-find debian-package/ -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-find debian-package/ -name "*.pyc" -delete 2>/dev/null || true
 
 # Copy current executables to package
 print_colored $YELLOW "📋 Updating package files..."
@@ -40,24 +37,10 @@ cp README.md debian-package/usr/share/doc/universal-battery-limiter/
 # Copy animated icons and supporting files
 print_colored $YELLOW "🎨 Copying animated icons..."
 mkdir -p debian-package/usr/local/share/universal-battery-limiter/
-
-# Copy icons if they exist
-if [ -d "icons/" ]; then
-    cp -r icons/ debian-package/usr/local/share/universal-battery-limiter/
-fi
-
-# Copy animation scripts if they exist
-if [ -f "enhanced_animated_icons.py" ]; then
-    cp enhanced_animated_icons.py debian-package/usr/local/share/universal-battery-limiter/
-fi
-if [ -f "animated_icons.py" ]; then
-    cp animated_icons.py debian-package/usr/local/share/universal-battery-limiter/
-fi
-
-# Copy documentation if it exists
-if [ -f "ANIMATED-ICONS.md" ]; then
-    cp ANIMATED-ICONS.md debian-package/usr/share/doc/universal-battery-limiter/
-fi
+cp -r icons/ debian-package/usr/local/share/universal-battery-limiter/
+cp enhanced_animated_icons.py debian-package/usr/local/share/universal-battery-limiter/
+cp animated_icons.py debian-package/usr/local/share/universal-battery-limiter/
+cp ANIMATED-ICONS.md debian-package/usr/share/doc/universal-battery-limiter/
 
 # Set permissions
 chmod 755 debian-package/usr/local/bin/*
