@@ -1,9 +1,15 @@
 # 🔋 Universal Battery Limiter
 
-Professional battery charge limiting tool for all compatible laptops running Ubuntu/Linux. Helps extend battery lifespan by preventing overcharging and works with multiple laptop brands.
+Professional battery charge limiting tool for all compatible laptops running **Linux** and **Windows**. Helps extend battery lifespan by preventing overcharging and works with multiple laptop brands.
+
+## 🖥️ **Cross-Platform Support**
+
+- **🐧 Linux Edition**: Ubuntu/Debian with APT, Snap, and .deb packages
+- **🪟 Windows Edition**: Windows 10/11 with manufacturer-specific support ([Windows Version](windows-version/))
 
 ## ✨ Features
 
+### 🐧 **Linux Edition**
 - **Multiple Installation Methods**: APT, Snap, .deb package, or manual
 - **Ubuntu Native Updates**: Automatic updates through Software Updater (APT/Snap installs)
 - **System Tray Integration**: Convenient access with battery status display
@@ -11,6 +17,14 @@ Professional battery charge limiting tool for all compatible laptops running Ubu
 - **GUI Application**: User-friendly graphical interface
 - **CLI Tools**: Command-line interface for advanced users
 - **Professional Packaging**: Enterprise-grade installation and removal
+
+### 🪟 **Windows Edition** ([View Details](windows-version/))
+- **Multi-Manufacturer Support**: Lenovo, Dell, HP, ASUS, and generic laptops
+- **Windows 11 Integration**: Native GUI with system tray support
+- **Smart Detection**: Automatically detects your laptop and available methods
+- **Multiple APIs**: WMI, manufacturer tools, PowerShell power plans
+- **UAC Integration**: Proper Windows privilege handling
+- **Professional Installation**: Windows installer with uninstall support
 
 ## 🎨 Enhanced Animated Icons
 
@@ -52,7 +66,7 @@ sudo apt-get install -f
 ```bash
 # Clone repository
 git clone https://github.com/FrancyAlinston/Battery-Limter.git
-cd Laptop-Battery-Limiter
+cd Battery-Limter
 
 # Run installer
 sudo ./install.sh
@@ -62,7 +76,7 @@ sudo ./install.sh
 ```bash
 # Clone and build
 git clone https://github.com/FrancyAlinston/Battery-Limter.git
-cd Laptop-Battery-Limiter
+cd Battery-Limter
 ./build-deb.sh
 
 # Install the built package
@@ -71,17 +85,19 @@ sudo dpkg -i universal-battery-limiter_*.deb
 
 ## 📱 Usage
 
-### System Tray (Recommended)
+### 🐧 **Linux Usage**
+
+#### System Tray (Recommended)
 - The battery indicator appears in your system tray after installation
 - Click to access quick presets: 60%, 70%, 80%, 90%, 100%
 - Right-click for full menu including GUI and settings
 
-### GUI Application
+#### GUI Application
 ```bash
 battery-gui
 ```
 
-### Command Line
+#### Command Line
 ```bash
 # Interactive CLI
 battery-cli
@@ -90,6 +106,40 @@ battery-cli
 battery-limit 80        # Set limit to 80%
 battery-limit status    # Check current status
 battery-limit reset     # Reset to 100%
+```
+
+### 🪟 **Windows Usage** ([Full Guide](windows-version/README.md))
+
+#### GUI Application
+- Double-click desktop shortcut or start from Start Menu
+- Modern Windows 11 interface with system tray support
+- Real-time battery monitoring and manufacturer detection
+
+#### Command Line
+```cmd
+# Check battery status
+battery_cli status
+
+# Set charge limit
+battery_cli set 80
+
+# Show system information
+battery_cli info
+
+# Test compatibility
+battery_cli test
+```
+
+#### PowerShell Integration
+```powershell
+# Advanced battery management
+.\battery_manager.ps1 -Action set -Limit 80
+
+# System information
+.\battery_manager.ps1 -Action info
+
+# Reset to full charging
+.\battery_manager.ps1 -Action reset
 ```
 
 ## 🔄 Updates
