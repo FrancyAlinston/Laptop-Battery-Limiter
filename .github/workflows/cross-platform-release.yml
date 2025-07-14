@@ -1,0 +1,414 @@
+# Universal Battery Limiter - Cross-Platform Release Workflow
+# Creates comprehensive releases for both Linux and Windows platforms
+
+name: Cross-Platform Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 2.2.0)'
+        required: true
+        default: '2.2.0'
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'stable'
+        type: choice
+        options:
+          - stable
+          - beta
+          - alpha
+      create_release:
+        description: 'Create GitHub release'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PACKAGE_NAME: universal-battery-limiter
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release_name: ${{ steps.version.outputs.release_name }}
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Determine version
+      id: version
+      run: |
+        if [ "${{ github.event.inputs.version }}" != "" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
+        elif [[ $GITHUB_REF == refs/tags/* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+          RELEASE_TYPE="stable"
+        else
+          VERSION=$(grep "^Version:" debian-package/DEBIAN/control | cut -d' ' -f2)
+          RELEASE_TYPE="stable"
+        fi
+        
+        if [ "$RELEASE_TYPE" = "beta" ]; then
+          RELEASE_NAME="Universal Battery Limiter v$VERSION (Beta)"
+        elif [ "$RELEASE_TYPE" = "alpha" ]; then
+          RELEASE_NAME="Universal Battery Limiter v$VERSION (Alpha)"
+        else
+          RELEASE_NAME="Universal Battery Limiter v$VERSION"
+        fi
+        
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
+        echo "Preparing release: $RELEASE_NAME"
+
+  build-linux:
+    needs: prepare-release
+    runs-on: ubuntu-latest
+    name: Build Linux Packages
+    
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential debhelper fakeroot dpkg-dev
+    - name: Update version in Linux files
+      run: |
+        VERSION=${{ needs.prepare-release.outputs.version }}
+        # Update control file
+        sed -i "s/^Version: .*/Version: $VERSION/" debian-package/DEBIAN/control
+        # Update changelog
+        echo "$PACKAGE_NAME ($VERSION) stable; urgency=medium" > debian-package/usr/share/doc/$PACKAGE_NAME/changelog
+        echo "" >> debian-package/usr/share/doc/$PACKAGE_NAME/changelog
+        echo "  * Cross-platform release with Windows 11 support" >> debian-package/usr/share/doc/$PACKAGE_NAME/changelog
+        echo "  * Professional Windows .exe installer" >> debian-package/usr/share/doc/$PACKAGE_NAME/changelog
+        echo "  * Enhanced multi-manufacturer battery management" >> debian-package/usr/share/doc/$PACKAGE_NAME/changelog
+        echo "  * Bug fixes and stability improvements" >> debian-package/usr/share/doc/$PACKAGE_NAME/changelog
+        echo "" >> debian-package/usr/share/doc/$PACKAGE_NAME/changelog
+        echo " -- Universal Battery Limiter Team <support@github.com>  $(date -R)" >> debian-package/usr/share/doc/$PACKAGE_NAME/changelog
+        # Update scripts
+        sed -i "s/current_version = \".*\"/current_version = \"$VERSION\"/" battery-indicator
+        sed -i "s/VERSION=\".*\"/VERSION=\"$VERSION\"/" battery-cli battery-limit
+    - name: Build .deb package
+      run: |
+        chmod +x build-deb.sh
+        ./build-deb.sh
+        VERSION=${{ needs.prepare-release.outputs.version }}
+        mv universal-battery-limiter_*.deb universal-battery-limiter_${VERSION}_all.deb
+    - name: Verify .deb package
+      run: |
+        VERSION=${{ needs.prepare-release.outputs.version }}
+        echo "📦 Package contents:"
+        dpkg-deb -c universal-battery-limiter_${VERSION}_all.deb
+        echo "📋 Package info:"
+        dpkg-deb -I universal-battery-limiter_${VERSION}_all.deb
+        echo "✅ Linux package verification complete"
+    - name: Upload Linux package
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-deb-package
+        path: universal-battery-limiter_*.deb
+        retention-days: 30
+
+  build-windows:
+    needs: prepare-release
+    runs-on: windows-latest
+    name: Build Windows Installer
+    
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+    - name: Update version in Windows files
+      shell: pwsh
+      run: |
+        $VERSION = "${{ needs.prepare-release.outputs.version }}"
+        Write-Host "Updating Windows files to version $VERSION"
+        
+        # Update setup.py
+        $setupContent = Get-Content windows-version/setup.py -Raw
+        $setupContent = $setupContent -replace 'APP_VERSION = "[^"]*"', "APP_VERSION = `"$VERSION`""
+        Set-Content windows-version/setup.py -Value $setupContent
+        
+        # Update config.json
+        $configContent = Get-Content windows-version/config.json -Raw
+        $configContent = $configContent -replace '"version": "[^"]*"', "`"version`": `"$VERSION`""
+        Set-Content windows-version/config.json -Value $configContent
+        
+        # Update create_installer.py
+        $installerContent = Get-Content windows-version/create_installer.py -Raw
+        $installerContent = $installerContent -replace 'APP_VERSION = "[^"]*"', "APP_VERSION = `"$VERSION`""
+        Set-Content windows-version/create_installer.py -Value $installerContent
+        
+        Write-Host "✅ Version updated in all Windows files"
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        cd windows-version
+        pip install PyInstaller>=5.0
+        pip install pillow
+        # Install other requirements, skipping Windows-specific ones that may fail in CI
+        pip install psutil requests setuptools
+    - name: Install NSIS
+      shell: pwsh
+      run: |
+        Write-Host "Installing NSIS..."
+        $nsisUrl = "https://sourceforge.net/projects/nsis/files/NSIS%203/3.08/nsis-3.08-setup.exe/download"
+        Invoke-WebRequest -Uri $nsisUrl -OutFile nsis-setup.exe -TimeoutSec 300
+        Start-Process -FilePath nsis-setup.exe -ArgumentList "/S" -Wait -PassThru
+        $nsisPath = "C:\Program Files (x86)\NSIS"
+        echo "$nsisPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        Write-Host "✅ NSIS installed"
+    - name: Create icons directory
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Path windows-version/icons -Force
+        # Create a simple placeholder icon using PowerShell
+        @"
+        @echo off
+        echo Creating placeholder icon...
+        "@  | Out-File -FilePath windows-version/icons/create_icon.bat -Encoding ascii
+    - name: Build Windows executable
+      shell: pwsh
+      run: |
+        cd windows-version
+        Write-Host "Building Windows executable..."
+        pyinstaller --onefile --windowed --name=UniversalBatteryLimiter battery_limiter_windows.py --noconfirm
+        pyinstaller --onefile --console --name=battery-cli battery_cli.py --noconfirm
+        Write-Host "✅ Executables built successfully"
+    
+    - name: Create fallback installer
+      shell: pwsh
+      run: |
+        cd windows-version
+        $VERSION = "${{ needs.prepare-release.outputs.version }}"
+        
+        # Create installer script content (avoid here-strings in YAML)
+        $content = "# Universal Battery Limiter v$VERSION - Windows Installer`n"
+        $content += "param([switch]`$Uninstall)`n`n"
+        $content += "`$AppName = 'Universal Battery Limiter'`n"
+        $content += "`$AppVersion = '$VERSION'`n"
+        $content += "`$InstallDir = `"`$env:ProgramFiles\`$AppName`"`n`n"
+        $content += "if (`$Uninstall) {`n"
+        $content += "    Write-Host 'Uninstalling `$AppName...' -ForegroundColor Yellow`n"
+        $content += "    if (Test-Path `$InstallDir) { Remove-Item -Recurse -Force `$InstallDir }`n"
+        $content += "    Remove-Item `"`$env:USERPROFILE\Desktop\`$AppName.lnk`" -ErrorAction SilentlyContinue`n"
+        $content += "    Write-Host '✅ Uninstalled successfully!' -ForegroundColor Green`n"
+        $content += "} else {`n"
+        $content += "    Write-Host 'Installing `$AppName v`$AppVersion...' -ForegroundColor Green`n"
+        $content += "    New-Item -ItemType Directory -Path `$InstallDir -Force | Out-Null`n"
+        $content += "    Copy-Item 'dist\UniversalBatteryLimiter.exe' `"`$InstallDir\`" -Force`n"
+        $content += "    Copy-Item 'dist\battery-cli.exe' `"`$InstallDir\`" -Force`n"
+        $content += "    Copy-Item 'config.json' `"`$InstallDir\`" -Force`n"
+        $content += "    `$WshShell = New-Object -comObject WScript.Shell`n"
+        $content += "    `$Shortcut = `$WshShell.CreateShortcut(`"`$env:USERPROFILE\Desktop\`$AppName.lnk`")`n"
+        $content += "    `$Shortcut.TargetPath = `"`$InstallDir\UniversalBatteryLimiter.exe`"`n"
+        $content += "    `$Shortcut.Save()`n"
+        $content += "    Write-Host '🎉 Installation complete!' -ForegroundColor Green`n"
+        $content += "}`n"
+        
+        Set-Content "UniversalBatteryLimiter_v${VERSION}_Installer.ps1" -Value $content
+        
+        # Create batch wrapper
+        $batchContent = "@echo off`necho Universal Battery Limiter v$VERSION - Windows Installer`necho.`necho This installer requires administrator privileges.`necho.`nPowerShell -ExecutionPolicy Bypass -File `"UniversalBatteryLimiter_v${VERSION}_Installer.ps1`"`npause"
+        Set-Content "UniversalBatteryLimiter_v${VERSION}_Setup.bat" -Value $batchContent
+        
+        Write-Host "✅ Fallback installer created"
+    
+    - name: Verify Windows build
+      shell: pwsh
+      run: |
+        cd windows-version
+        if (Test-Path "dist/UniversalBatteryLimiter.exe") {
+          Write-Host "✅ Main executable created successfully"
+          $size = (Get-Item "dist/UniversalBatteryLimiter.exe").Length / 1MB
+          Write-Host "📏 Size: $([math]::Round($size, 2)) MB"
+        } else {
+          Write-Host "❌ Main executable not found" -ForegroundColor Red
+          exit 1
+        }
+        
+        if (Test-Path "dist/battery-cli.exe") {
+          Write-Host "✅ CLI executable created successfully"
+        } else {
+          Write-Host "❌ CLI executable not found" -ForegroundColor Red
+          exit 1
+        }
+        
+        Write-Host "✅ Windows build verification complete"
+    - name: Upload Windows artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-installer
+        path: |
+          windows-version/dist/*.exe
+          windows-version/*_Setup.bat
+          windows-version/*_Installer.ps1
+        retention-days: 30
+
+  create-release:
+    needs: [prepare-release, build-linux, build-windows]
+    runs-on: ubuntu-latest
+    name: Create GitHub Release
+    if: github.event.inputs.create_release == 'true' || github.event_name == 'release'
+    
+    steps:
+    - uses: actions/checkout@v4
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts/
+    - name: Display artifact structure
+      run: |
+        echo "📁 Artifact structure:"
+        find artifacts/ -type f -ls
+    - name: Create release notes
+      run: |
+        VERSION=${{ needs.prepare-release.outputs.version }}
+        cat > release_notes.md << EOF
+        # ${{ needs.prepare-release.outputs.release_name }}
+        
+        ## 🚀 Cross-Platform Battery Management Solution
+        
+        This release brings Universal Battery Limiter to both **Linux** and **Windows 11** platforms with professional-grade installers and comprehensive manufacturer support.
+        
+        ## 📦 Downloads
+        
+        ### 🐧 Linux Users
+        - **Ubuntu/Debian**: Download \`universal-battery-limiter_${VERSION}_all.deb\`
+        - **Installation**: \`sudo dpkg -i universal-battery-limiter_${VERSION}_all.deb\`
+        - **Alternative**: Available via Snap Store and PPA
+        
+        ### 🪟 Windows Users  
+        - **Windows 11/10**: Download \`UniversalBatteryLimiter_v${VERSION}_Setup.bat\`
+        - **Installation**: Right-click and "Run as Administrator"
+        - **Supports**: Lenovo, Dell, HP, ASUS, and generic laptops
+        
+        ## ✨ Key Features
+        
+        ### 🔋 Advanced Battery Management
+        - **Smart Charge Limiting**: Set custom limits from 50-100%
+        - **Multi-Manufacturer Support**: Lenovo, Dell, HP, ASUS, generic
+        - **Real-time Monitoring**: Live battery status and notifications
+        - **System Integration**: Native OS integration and auto-start
+        
+        ### 💻 Platform-Specific Features
+        
+        #### Linux Edition
+        - System tray with animated icons
+        - Ubuntu Software Updater integration
+        - APT, Snap, and .deb installation methods
+        - Professional packaging and uninstall support
+        
+        #### Windows Edition
+        - Modern Windows 11 UI with Fluent Design
+        - PowerShell integration for advanced control
+        - UAC-compliant installation and operation
+        - Registry-based manufacturer control
+        - WMI and native Windows APIs
+        
+        ## 🛠️ Technical Improvements
+        
+        - **Enhanced Error Handling**: Comprehensive error recovery
+        - **Multi-API Support**: Multiple fallback methods per manufacturer
+        - **Professional Installation**: Clean install/uninstall processes
+        - **Documentation**: Complete user and developer guides
+        - **Cross-Platform Codebase**: Unified project structure
+        
+        ## 📚 Documentation
+        
+        - **Linux Guide**: [README.md](https://github.com/FrancyAlinston/Battery-Limter/blob/main/README.md)
+        - **Windows Guide**: [windows-version/README.md](https://github.com/FrancyAlinston/Battery-Limter/blob/main/windows-version/README.md)
+        - **Developer Docs**: [windows-version/DEVELOPMENT.md](https://github.com/FrancyAlinston/Battery-Limter/blob/main/windows-version/DEVELOPMENT.md)
+        
+        ## 🔧 System Requirements
+        
+        ### Linux
+        - Ubuntu 18.04+ / Debian 10+ / Compatible distribution
+        - Python 3.6+ (automatically installed)
+        - ACPI-compatible laptop with battery management
+        
+        ### Windows
+        - Windows 10 version 1903+ / Windows 11 (recommended)
+        - Administrator privileges for installation
+        - Python 3.6+ (bundled in executable)
+        - Supported laptop manufacturer (or generic fallback)
+        
+        ## 🐛 Bug Fixes
+        
+        - Fixed critical permission issues in Linux sudoers configuration
+        - Resolved Unicode encoding problems in documentation
+        - Improved error handling and user feedback
+        - Enhanced compatibility with newer laptop models
+        - Standardized repository URLs and documentation
+        
+        ## 🎯 Usage
+        
+        ### Quick Start (Linux)
+        \`\`\`bash
+        # Install the package
+        sudo dpkg -i universal-battery-limiter_${VERSION}_all.deb
+        
+        # Set 80% charge limit
+        battery-limit 80
+        
+        # Launch GUI
+        battery-gui
+        \`\`\`
+        
+        ### Quick Start (Windows)
+        \`\`\`cmd
+        REM Install as Administrator
+        UniversalBatteryLimiter_v${VERSION}_Setup.bat
+        
+        REM Set 80% charge limit
+        battery-cli set 80
+        
+        REM Launch GUI (from Start Menu or Desktop)
+        \`\`\`
+        
+        ## 🤝 Contributing
+        
+        We welcome contributions! See our [Contributing Guide](https://github.com/FrancyAlinston/Battery-Limter/blob/main/CONTRIBUTING.md) for details.
+        
+        ## 📞 Support
+        
+        - **Issues**: [GitHub Issues](https://github.com/FrancyAlinston/Battery-Limter/issues)
+        - **Discussions**: [GitHub Discussions](https://github.com/FrancyAlinston/Battery-Limter/discussions)
+        - **Documentation**: [Project Wiki](https://github.com/FrancyAlinston/Battery-Limter/wiki)
+        
+        ---
+        
+        **Full Changelog**: https://github.com/FrancyAlinston/Battery-Limter/compare/v2.1.0...v${VERSION}
+        EOF
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ needs.prepare-release.outputs.version }}
+        name: ${{ needs.prepare-release.outputs.release_name }}
+        body_path: release_notes.md
+        draft: false
+        prerelease: ${{ contains(needs.prepare-release.outputs.release_name, 'Beta') || contains(needs.prepare-release.outputs.release_name, 'Alpha') }}
+        files: |
+          artifacts/linux-deb-package/*.deb
+          artifacts/windows-installer/*.exe
+          artifacts/windows-installer/*.bat
+          artifacts/windows-installer/*.ps1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

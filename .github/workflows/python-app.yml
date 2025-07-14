@@ -1,21 +1,21 @@
-# Universal Battery Limiter CI/CD Pipeline
-# Builds and tests the application, creates .deb packages for releases
-# Supports automatic versioning and Ubuntu native updater integration
+# Universal Battery Limiter Cross-Platform CI/CD Pipeline
+# Builds and tests for both Linux and Windows, creates packages for releases
+# Supports automatic versioning and multi-platform distribution
 
-name: Build and Package
+name: Cross-Platform Build and Package
 
 on:
   push:
-    branches: [ "stable", "beta" ]  # Only build public releases from stable/beta
+    branches: [ "stable", "beta" ]
     tags: [ "v*" ]
   pull_request:
-    branches: [ "stable", "beta" ]  # Only allow PRs to stable/beta
+    branches: [ "stable", "beta" ]
   release:
     types: [published]
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (e.g., 1.0.1)'
+        description: 'Version to release (e.g., 2.2.0)'
         required: false
         default: ''
       branch:
@@ -26,19 +26,29 @@ on:
         options:
           - stable
           - beta
+      build_target:
+        description: 'Build target'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - linux
+          - windows
 
 permissions:
   contents: write
   packages: write
 
 jobs:
-  test:
+  test-linux:
     runs-on: ubuntu-latest
+    name: Test Linux Version
 
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.10
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: "3.10"
     - name: Install system dependencies
@@ -52,9 +62,9 @@ jobs:
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=debian-package
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=debian-package,windows-version
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=debian-package
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=debian-package,windows-version
     - name: Test scripts syntax
       run: |
         # Test shell scripts syntax
@@ -73,6 +83,34 @@ jobs:
         ./battery-cli --help
         # Test battery limit script
         ./battery-limit --help
+
+  test-windows:
+    runs-on: windows-latest
+    name: Test Windows Version
+    
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+    - name: Install Windows dependencies
+      run: |
+        python -m pip install --upgrade pip
+        cd windows-version
+        pip install -r requirements.txt
+    - name: Test Windows scripts syntax
+      run: |
+        cd windows-version
+        python -m py_compile battery_limiter_windows.py
+        python -m py_compile battery_cli.py
+        python -m py_compile config_manager.py
+        python -m py_compile create_installer.py
+    - name: Test Windows CLI functionality
+      run: |
+        cd windows-version
+        python battery_cli.py --help
+        python battery_limiter_windows.py --help
 
   get-version:
     runs-on: ubuntu-latest
@@ -104,8 +142,9 @@ jobs:
         fi
 
   build-deb:
-    needs: [test, get-version]
+    needs: [test-linux, get-version]
     runs-on: ubuntu-latest
+    name: Build Linux .deb Package
     if: github.event_name == 'release' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/beta'
 
     steps:
@@ -156,40 +195,31 @@ jobs:
         # Check package info
         dpkg-deb -I universal-battery-limiter_${VERSION}_all.deb
     - name: Upload .deb artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: deb-package
         path: universal-battery-limiter_*.deb
-    - name: Upload .deb package to release
-      if: github.event_name == 'release'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./universal-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
-        asset_name: universal-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
-        asset_content_type: application/vnd.debian.binary-package
 
   create-release:
-    needs: [test, get-version, build-deb]
+    needs: [test-linux, test-windows, get-version, build-deb, build-windows]
     runs-on: ubuntu-latest
+    name: Create GitHub Release
     if: github.event_name == 'workflow_dispatch' && needs.get-version.outputs.tag-exists == 'false'
 
     steps:
     - uses: actions/checkout@v4
     - name: Download .deb package
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: deb-package
     - name: Create Release
       id: create_release
-      uses: actions/create-release@v1
+      uses: softprops/action-gh-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: v${{ needs.get-version.outputs.version }}
-        release_name: Release v${{ needs.get-version.outputs.version }}
+        name: Release v${{ needs.get-version.outputs.version }}
         body: |
           ## Universal Battery Limiter v${{ needs.get-version.outputs.version }}
 
@@ -227,19 +257,13 @@ jobs:
           For detailed installation instructions, see [INSTALL.md](https://github.com/${{ github.repository }}/blob/main/INSTALL.md).
         draft: false
         prerelease: false
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./universal-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
-        asset_name: universal-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
-        asset_content_type: application/vnd.debian.binary-package
+        files: |
+          universal-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
 
   publish-ppa:
-    needs: [test, get-version, build-deb]
+    needs: [test-linux, get-version, build-deb]
     runs-on: ubuntu-latest
+    name: Publish to Ubuntu PPA
     if: github.event_name == 'release' && github.repository_owner == 'yourusername'  # Replace with your username
     # This job is disabled by default - enable it by setting up PPA secrets
     # See PUBLISHING.md for setup instructions
@@ -268,3 +292,67 @@ jobs:
         # This would require proper debian/ directory structure for PPA
         # See PUBLISHING.md for detailed setup
         echo "PPA publishing not yet configured"
+
+  build-windows:
+    needs: [test-windows, get-version]
+    runs-on: windows-latest
+    name: Build Windows .exe Installer
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/beta'
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+    - name: Update version in Windows files
+      run: |
+        $VERSION = "${{ needs.get-version.outputs.version }}"
+        # Update version in setup.py
+        (Get-Content windows-version/setup.py) -replace 'APP_VERSION = ".*"', "APP_VERSION = `"$VERSION`"" | Set-Content windows-version/setup.py
+        # Update version in config.json
+        (Get-Content windows-version/config.json) -replace '"version": ".*"', "`"version`": `"$VERSION`"" | Set-Content windows-version/config.json
+        # Update version in create_installer.py
+        (Get-Content windows-version/create_installer.py) -replace 'APP_VERSION = ".*"', "APP_VERSION = `"$VERSION`"" | Set-Content windows-version/create_installer.py
+    - name: Install Windows build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        cd windows-version
+        pip install PyInstaller>=5.0
+        pip install -r requirements.txt
+    - name: Install NSIS (for professional installer)
+      run: |
+        # Download and install NSIS
+        $nsisUrl = "https://sourceforge.net/projects/nsis/files/NSIS%203/3.08/nsis-3.08-setup.exe/download"
+        Invoke-WebRequest -Uri $nsisUrl -OutFile nsis-setup.exe
+        Start-Process -FilePath nsis-setup.exe -ArgumentList "/S" -Wait
+        # Add NSIS to PATH
+        $nsisPath = "C:\Program Files (x86)\NSIS"
+        $env:PATH += ";$nsisPath"
+        echo "$nsisPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+    - name: Build Windows executable and installer
+      run: |
+        cd windows-version
+        python create_installer.py
+    - name: Test Windows executable
+      run: |
+        cd windows-version
+        if (Test-Path "dist/UniversalBatteryLimiter.exe") {
+          Write-Host "✅ Main executable created successfully"
+        } else {
+          Write-Host "❌ Main executable not found"
+          exit 1
+        }
+        if (Test-Path "dist/battery-cli.exe") {
+          Write-Host "✅ CLI executable created successfully"
+        } else {
+          Write-Host "❌ CLI executable not found"
+          exit 1
+        }
+    - name: Upload Windows executables
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-executables
+        path: |
+          windows-version/dist/*.exe
+          windows-version/*.exe
