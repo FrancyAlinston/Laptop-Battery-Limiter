@@ -80,7 +80,7 @@ cat << EOF
 gh release create $TAG \\
     --title "$RELEASE_TITLE" \\
     --notes-file "RELEASE-NOTES-v${VERSION}.md" \\
-    --repo FrancyAlinston/Laptop-Battery-Limiter \\
+    --repo FrancyAlinston/Battery-Limter \\
     "$DEB_FILE#Main .deb Package (${DEB_SIZE})" \\
     "animated-icons-demo.html#Animation Demo" \\
     "ANIMATED-ICONS.md#Animation Documentation" \\
@@ -89,7 +89,7 @@ EOF
 
 print_colored $PURPLE "🌐 Manual GitHub Release (if CLI not available):"
 echo ""
-echo "1. Go to: https://github.com/FrancyAlinston/Laptop-Battery-Limiter/releases/new"
+echo "1. Go to: https://github.com/FrancyAlinston/Battery-Limter/releases/new"
 echo "2. Tag: $TAG"
 echo "3. Title: $RELEASE_TITLE"
 echo "4. Description: Copy content from RELEASE-NOTES-v${VERSION}.md"

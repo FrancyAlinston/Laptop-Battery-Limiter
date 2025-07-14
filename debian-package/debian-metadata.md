@@ -7,7 +7,7 @@
 - **Priority**: optional
 - **Architecture**: all
 - **Maintainer**: FrancyAlinston <francyalen@gmail.com>
-- **Homepage**: https://github.com/FrancyAlinston/Laptop-Battery-Limiter
+- **Homepage**: https://github.com/FrancyAlinston/Battery-Limter
 
 ## Dependencies
 - python3 (>= 3.6)
@@ -20,8 +20,8 @@
 - policykit-1
 
 ## Version Control
-- **Git Repository**: https://github.com/FrancyAlinston/Laptop-Battery-Limiter.git
-- **Browse**: https://github.com/FrancyAlinston/Laptop-Battery-Limiter
+- **Git Repository**: https://github.com/FrancyAlinston/Battery-Limter.git
+- **Browse**: https://github.com/FrancyAlinston/Battery-Limter
 - **Standards Version**: 4.6.0
 
 ## Package Description
@@ -80,6 +80,6 @@ Copyright 2025 FrancyAlinston <francyalen@gmail.com>
 This package is free software; you can redistribute it and/or modify it under the terms of the MIT License.
 
 ## Support
-- **Issues**: https://github.com/FrancyAlinston/Laptop-Battery-Limiter/issues
-- **Documentation**: https://github.com/FrancyAlinston/Laptop-Battery-Limiter/blob/main/README.md
+- **Issues**: https://github.com/FrancyAlinston/Battery-Limter/issues
+- **Documentation**: https://github.com/FrancyAlinston/Battery-Limter/blob/main/README.md
 - **Contact**: francyalen@gmail.com

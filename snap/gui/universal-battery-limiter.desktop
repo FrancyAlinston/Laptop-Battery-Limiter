@@ -2,10 +2,10 @@
 Name=Universal Battery Limiter
 Comment=Battery charge limit management for all compatible laptops
 Exec=universal-battery-limiter.battery-gui
-Icon=${SNAP}/meta/gui/battery-limiter.png
+Icon=battery-limiter
 Terminal=false
 Type=Application
-Categories=System;Settings;HardwareSettings;
+Categories=Settings;
 Keywords=battery;charge;limit;laptop;power;management;
 StartupNotify=true
 X-GNOME-Autostart-enabled=false

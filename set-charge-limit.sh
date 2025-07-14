@@ -58,5 +58,3 @@ else
     echo "This may require root privileges or the system may not support this feature"
     exit 1
 fi
-    exit 1
-fi

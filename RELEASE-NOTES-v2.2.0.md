@@ -1,4 +1,22 @@
-# 🚀 Universal Battery Limiter v2.2.0 - Release Notes
+# 🚀 Universal Battery Limiter v2.2.0 - Rel### 🔧 Technical Improvements
+- **Enhanced animation manager** with performance optimization
+- **SVG-to-PNG conversion** for maximum compatibility
+- **Battery-friendly design** that minimizes CPU usage
+- **Cross-platform support** for all Linux desktop environments
+- **Added librsvg2-bin dependency** for SVG processing
+
+### 🐛 Bug Fixes & Quality Improvements
+- **Repository URL consistency**: Standardized all references to `FrancyAlinston/Battery-Limter`
+- **Unicode character fixes**: Resolved broken emoji characters in uninstall script
+- **Desktop file validation**: Fixed multiple main categories warning
+- **Snap desktop integration**: Corrected icon path references for snap packages
+- **Documentation formatting**: Fixed corrupted content in TROUBLESHOOTING.md
+- **File permissions**: Corrected execute permissions for build scripts
+- **Sudoers syntax**: Properly quoted shell commands for security
+- **Code quality**: Comprehensive error scanning and validation across entire project
+- **Markdown formatting**: Fixed code block mismatches in documentation files
+
+### 📦 Package Improvementses
 
 ## 🎉 What's New in v2.2.0 - Beautiful Animated System Tray Icons
 
@@ -98,7 +116,7 @@
 #### From v2.0.x or v2.1.x
 ```bash
 # Download new package
-wget https://github.com/FrancyAlinston/Laptop-Battery-Limiter/releases/download/v2.2.0/universal-battery-limiter_2.2.0_all.deb
+wget https://github.com/FrancyAlinston/Battery-Limter/releases/download/v2.2.0/universal-battery-limiter_2.2.0_all.deb
 
 # Install upgrade
 sudo dpkg -i universal-battery-limiter_2.2.0_all.deb
@@ -111,7 +129,7 @@ battery-indicator &
 #### Fresh Installation
 ```bash
 # Download and install
-wget https://github.com/FrancyAlinston/Laptop-Battery-Limiter/releases/download/v2.2.0/universal-battery-limiter_2.2.0_all.deb
+wget https://github.com/FrancyAlinston/Battery-Limter/releases/download/v2.2.0/universal-battery-limiter_2.2.0_all.deb
 sudo dpkg -i universal-battery-limiter_2.2.0_all.deb
 
 # Fix any missing dependencies
@@ -137,8 +155,8 @@ sudo apt-get install -f
 - ✅ Enhanced .gitignore for clean development
 
 ### 🔗 Links
-- **GitHub Repository**: https://github.com/FrancyAlinston/Laptop-Battery-Limiter
-- **Issues & Support**: https://github.com/FrancyAlinston/Laptop-Battery-Limiter/issues
+- **GitHub Repository**: https://github.com/FrancyAlinston/Battery-Limter
+- **Issues & Support**: https://github.com/FrancyAlinston/Battery-Limter/issues
 - **Documentation**: See included ANIMATED-ICONS.md
 
 ### 🎯 What's Next

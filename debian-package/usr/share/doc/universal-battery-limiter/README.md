@@ -39,7 +39,7 @@ See [ANIMATED-ICONS.md](ANIMATED-ICONS.md) for detailed documentation.
 ### Method 1: Direct .deb Package (Recommended)
 ```bash
 # Download the latest release
-wget https://github.com/FrancyAlinston/Laptop-Battery-Limiter/releases/latest/download/universal-battery-limiter_2.0.0_all.deb
+wget https://github.com/FrancyAlinston/Battery-Limter/releases/latest/download/universal-battery-limiter_2.0.0_all.deb
 
 # Install
 sudo dpkg -i universal-battery-limiter_*.deb
@@ -51,7 +51,7 @@ sudo apt-get install -f
 ### Method 2: Manual Installation
 ```bash
 # Clone repository
-git clone https://github.com/FrancyAlinston/Laptop-Battery-Limiter.git
+git clone https://github.com/FrancyAlinston/Battery-Limter.git
 cd Laptop-Battery-Limiter
 
 # Run installer
@@ -61,7 +61,7 @@ sudo ./install.sh
 ### Method 3: Build Your Own Package
 ```bash
 # Clone and build
-git clone https://github.com/FrancyAlinston/Laptop-Battery-Limiter.git
+git clone https://github.com/FrancyAlinston/Battery-Limter.git
 cd Laptop-Battery-Limiter
 ./build-deb.sh
 
@@ -193,8 +193,8 @@ This tool modifies system power management settings. Use at your own risk. The a
 
 ## 🆘 Support
 
-- **Issues**: [GitHub Issues](https://github.com/FrancyAlinston/Laptop-Battery-Limiter/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/FrancyAlinston/Laptop-Battery-Limiter/discussions)
+- **Issues**: [GitHub Issues](https://github.com/FrancyAlinston/Battery-Limter/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/FrancyAlinston/Battery-Limter/discussions)
 
 ---
 

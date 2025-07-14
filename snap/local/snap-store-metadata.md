@@ -3,7 +3,7 @@
 ## Publisher Information
 - **Developer**: FrancyAlinston
 - **Contact**: francyalen@gmail.com
-- **Website**: https://github.com/FrancyAlinston/Laptop-Battery-Limiter
+- **Website**: https://github.com/FrancyAlinston/Battery-Limter
 - **License**: MIT
 
 ## Snap Store Categories
@@ -58,7 +58,7 @@ For issues, feature requests, or questions, please visit the project repository 
 
 ## Store Presence
 - **Snap Store**: https://snapcraft.io/universal-battery-limiter
-- **GitHub**: https://github.com/FrancyAlinston/Laptop-Battery-Limiter
+- **GitHub**: https://github.com/FrancyAlinston/Battery-Limter
 - **Documentation**: Available in the project repository
 
 ## Maintenance

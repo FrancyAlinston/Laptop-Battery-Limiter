@@ -27,10 +27,7 @@ This script will:
 # View installation and runtime logs
 ./view-logs.sh all
 
-# View only error# Battery Limiter permissions
-%sudo ALL=(ALL) NOPASSWD: /usr/local/bin/set-charge-limit.sh
-%sudo ALL=(ALL) NOPASSWD: /bin/bash -c "echo * > /sys/class/power_supply/BAT*/charge_control_end_threshold"
-%sudo ALL=(ALL) NOPASSWD: /bin/tee /sys/class/power_supply/BAT*/charge_control_end_thresholdom all logs
+# View only errors from all logs
 ./view-logs.sh errors
 
 # Live log monitoring

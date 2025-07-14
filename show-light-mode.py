@@ -226,7 +226,7 @@ class BatteryControlGUI:
 
         # Version info for updates
         self.current_version = "2.0.0"
-        self.github_repo = "FrancyAlinston/Laptop-Battery-Limiter"
+        self.github_repo = "FrancyAlinston/Battery-Limter"
         self.release_channel = "stable"
 
     def create_widgets(self):

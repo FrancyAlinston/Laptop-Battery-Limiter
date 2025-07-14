@@ -16,8 +16,18 @@ universal-battery-limiter (2.2.0) stable; urgency=low
   * ENHANCED: Battery state awareness with intelligent animation triggers
   * TECHNICAL: Added librsvg2-bin dependency for SVG processing
   * TECHNICAL: Enhanced .gitignore for animation artifacts and build files
+  * FIXED: Repository URL consistency across all files (standardized to Battery-Limter)
+  * FIXED: Unicode character issues in uninstall.sh (broken emojis)
+  * FIXED: Desktop file validation issues (removed multiple main categories)
+  * FIXED: Snap desktop file icon path (removed absolute path references)
+  * FIXED: Corrupted content in TROUBLESHOOTING.md (mangled code blocks)
+  * FIXED: File permissions for build scripts and environment files
+  * FIXED: Sudoers command syntax (properly quoted shell commands)
+  * FIXED: Markdown code block formatting across documentation files
+  * ENHANCED: Comprehensive error scanning and validation across entire project
+  * ENHANCED: Project-wide consistency and code quality improvements
 
- -- FrancyAlinston <francyalen@gmail.com>  Tue, 08 Jul 2025 01:00:00 +0100
+ -- FrancyAlinston <francyalen@gmail.com>  Sun, 14 Jul 2025 12:00:00 +0100
 
 universal-battery-limiter (2.1.0) stable; urgency=low
 

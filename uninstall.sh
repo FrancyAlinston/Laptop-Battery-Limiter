@@ -14,7 +14,7 @@ PURPLE='\033[0;35m'
 NC='\033[0m'
 
 # Logging setup
-LOG_DIR="$HOME/.local/share/battery-limiter/logs"
+LOG_DIR="$HOME/.local/share/battery-limiter    print_colored $PURPLE "🧹 Cleaning up dpkg status file"loprint_colored $PURPLE "🔍 Final verification"s"
 UNINSTALL_LOG="$LOG_DIR/uninstall.log"
 mkdir -p "$LOG_DIR" 2>/dev/null || true
 

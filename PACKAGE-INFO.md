@@ -6,7 +6,7 @@
 ## Developer Information
 - **Developer**: FrancyAlinston
 - **Contact**: francyalen@gmail.com
-- **GitHub**: https://github.com/FrancyAlinston/Laptop-Battery-Limiter
+- **GitHub**: https://github.com/FrancyAlinston/Battery-Limter
 - **License**: MIT License
 - **Version**: 2.0.0
 
@@ -97,7 +97,7 @@ sudo snap connect universal-battery-limiter:battery-control
 ### Debian Repository
 - **Maintainer**: FrancyAlinston <francyalen@gmail.com>
 - **Uploaders**: FrancyAlinston <francyalen@gmail.com>
-- **Homepage**: https://github.com/FrancyAlinston/Laptop-Battery-Limiter
+- **Homepage**: https://github.com/FrancyAlinston/Battery-Limter
 - **VCS**: Git repository on GitHub
 - **Standards-Version**: 4.6.0
 
