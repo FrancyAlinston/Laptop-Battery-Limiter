@@ -27,7 +27,10 @@ This script will:
 # View installation and runtime logs
 ./view-logs.sh all
 
-# View only errors from all logs
+# View only error# Battery Limiter permissions
+%sudo ALL=(ALL) NOPASSWD: /usr/local/bin/set-charge-limit.sh
+%sudo ALL=(ALL) NOPASSWD: /bin/bash -c "echo * > /sys/class/power_supply/BAT*/charge_control_end_threshold"
+%sudo ALL=(ALL) NOPASSWD: /bin/tee /sys/class/power_supply/BAT*/charge_control_end_thresholdom all logs
 ./view-logs.sh errors
 
 # Live log monitoring
@@ -79,267 +82,19 @@ The Universal Battery Limiter now includes a comprehensive logging system that t
 ./view-logs.sh clear
 ```
 
-### � Installation Methods
+### 📦 **Installation Methods Overview**
 
 Universal Battery Limiter supports multiple installation methods to suit different user preferences and system configurations. Each method handles permissions and system integration differently.
 
-#### **🟢 Recommended: Debian Package (.deb)**
+**Quick Installation Reference:**
+- **🟢 Debian Package (.deb)**: Recommended for Ubuntu/Debian systems
+- **🔵 Snap Package**: Universal, sandboxed installation
+- **🟡 AppImage**: Portable, no installation required
+- **🔴 Manual/Source**: Full control, latest features
 
-The Debian package provides the cleanest installation with proper system integration and permission handling.
+**👉 For detailed installation instructions with permissions setup, see the [Installation Guide](#installation-guide) section below.**
 
-**Installation:**
-```bash
-# Download the latest .deb package
-wget https://github.com/FrancyAlinston/Battery-Limter/releases/latest/download/universal-battery-limiter_2.2.0_all.deb
-
-# Install the package
-sudo dpkg -i universal-battery-limiter_2.2.0_all.deb
-
-# Fix any missing dependencies
-sudo apt --fix-broken install
-
-# Verify installation
-battery-cli status
-```
-
-**Features:**
-- ✅ **Automatic permission setup**: Sudoers file configured automatically
-- ✅ **System integration**: Desktop entries, autostart, icon cache
-- ✅ **Dependency management**: APT handles all dependencies
-- ✅ **Clean removal**: `sudo apt remove universal-battery-limiter`
-- ✅ **Auto-updates**: Can be updated through APT when available
-
-**Permissions Handled:**
-- Battery threshold file access via sudoers configuration
-- User group membership for hardware access
-- Desktop integration and autostart permissions
-
-#### **🔵 Snap Package (Sandboxed)**
-
-Snap provides isolated installation with automatic permission management.
-
-**Installation:**
-```bash
-# Install from Snap Store
-sudo snap install universal-battery-limiter
-
-# Or install local snap file
-sudo snap install --dangerous universal-battery-limiter_2.2.0_amd64.snap
-
-# Grant necessary permissions
-sudo snap connect universal-battery-limiter:hardware-observe
-sudo snap connect universal-battery-limiter:system-observe
-sudo snap connect universal-battery-limiter:desktop
-sudo snap connect universal-battery-limiter:desktop-legacy
-
-# Verify installation
-universal-battery-limiter.battery-cli status
-```
-
-**Features:**
-- ✅ **Sandboxed security**: Isolated from system
-- ✅ **Automatic updates**: Auto-updates from Snap Store
-- ✅ **Cross-distro compatibility**: Works on any Linux with snapd
-- ✅ **Permission management**: Granular permission control
-- ⚠️ **Battery access limitations**: May require additional configuration
-
-**Special Snap Configuration:**
-```bash
-# Enable battery control access (may require manual setup)
-sudo snap connect universal-battery-limiter:raw-usb
-sudo snap connect universal-battery-limiter:hardware-observe
-
-# Create symlink for battery access (if needed)
-sudo ln -sf /snap/universal-battery-limiter/current/bin/battery-cli /usr/local/bin/
-```
-
-#### **🟡 AppImage (Portable)**
-
-AppImage provides a portable, no-installation-required option.
-
-**Usage:**
-```bash
-# Download AppImage
-wget https://github.com/FrancyAlinston/Battery-Limter/releases/latest/download/Universal-Battery-Limiter-2.2.0-x86_64.AppImage
-
-# Make executable
-chmod +x Universal-Battery-Limiter-2.2.0-x86_64.AppImage
-
-# Run directly
-./Universal-Battery-Limiter-2.2.0-x86_64.AppImage
-
-# Or integrate into system (optional)
-./Universal-Battery-Limiter-2.2.0-x86_64.AppImage --appimage-integrate
-```
-
-**Manual Permission Setup for AppImage:**
-```bash
-# Create sudoers file for battery access
-sudo tee /etc/sudoers.d/battery-limiter-appimage > /dev/null << 'EOF'
-%sudo ALL=(ALL) NOPASSWD: /bin/bash -c echo * > /sys/class/power_supply/BAT*/charge_control_end_threshold
-EOF
-
-sudo chmod 440 /etc/sudoers.d/battery-limiter-appimage
-
-# Create desktop integration (optional)
-mkdir -p ~/.local/share/applications
-cat > ~/.local/share/applications/universal-battery-limiter.desktop << 'EOF'
-[Desktop Entry]
-Name=Universal Battery Limiter
-Comment=Control battery charge limits
-Exec=/path/to/Universal-Battery-Limiter-2.2.0-x86_64.AppImage
-Icon=battery
-Terminal=false
-Type=Application
-Categories=System;Settings;
-EOF
-```
-
-#### **🔴 Manual Installation (Source)**
-
-Manual installation from source code with custom configuration.
-
-**Installation:**
-```bash
-# Clone repository
-git clone https://github.com/FrancyAlinston/Battery-Limter.git
-cd Battery-Limter
-
-# Run installation script
-./install.sh
-
-# Or use simple installation (basic features only)
-./install-simple.sh
-```
-
-**Manual Permission Configuration:**
-```bash
-# 1. Setup sudoers for battery control
-sudo tee /etc/sudoers.d/universal-battery-limiter > /dev/null << 'EOF'
-%sudo ALL=(ALL) NOPASSWD: /usr/local/bin/set-charge-limit.sh
-%sudo ALL=(ALL) NOPASSWD: /bin/bash -c echo * > /sys/class/power_supply/BAT*/charge_control_end_threshold
-EOF
-
-sudo chmod 440 /etc/sudoers.d/universal-battery-limiter
-
-# 2. Add user to dialout group (for some systems)
-sudo usermod -a -G dialout $USER
-
-# 3. Setup udev rules for battery access (alternative method)
-sudo tee /etc/udev/rules.d/99-battery-limiter.rules > /dev/null << 'EOF'
-# Allow users in wheel/sudo group to write to battery threshold
-SUBSYSTEM=="power_supply", KERNEL=="BAT*", ATTR{charge_control_end_threshold}="664", GROUP="sudo"
-EOF
-
-sudo udevadm control --reload-rules
-sudo udevadm trigger
-
-# 4. Logout and login for group changes to take effect
-```
-
-### 🔧 **Permission Setup by Distribution**
-
-#### **Ubuntu/Debian/Mint:**
-```bash
-# Standard permission setup
-sudo tee /etc/sudoers.d/battery-limiter > /dev/null << 'EOF'
-%sudo ALL=(ALL) NOPASSWD: /bin/bash -c echo * > /sys/class/power_supply/BAT*/charge_control_end_threshold
-EOF
-
-# Alternative: udev rules method
-sudo tee /etc/udev/rules.d/99-battery-threshold.rules > /dev/null << 'EOF'
-SUBSYSTEM=="power_supply", KERNEL=="BAT*", ATTR{charge_control_end_threshold}="0664", GROUP="sudo"
-EOF
-```
-
-#### **Fedora/CentOS/RHEL:**
-```bash
-# Use wheel group instead of sudo
-sudo tee /etc/sudoers.d/battery-limiter > /dev/null << 'EOF'
-%wheel ALL=(ALL) NOPASSWD: /bin/bash -c echo * > /sys/class/power_supply/BAT*/charge_control_end_threshold
-EOF
-
-# Or udev rules for wheel group
-sudo tee /etc/udev/rules.d/99-battery-threshold.rules > /dev/null << 'EOF'
-SUBSYSTEM=="power_supply", KERNEL=="BAT*", ATTR{charge_control_end_threshold}="0664", GROUP="wheel"
-EOF
-```
-
-#### **Arch Linux/Manjaro:**
-```bash
-# Use wheel group
-sudo tee /etc/sudoers.d/battery-limiter > /dev/null << 'EOF'
-%wheel ALL=(ALL) NOPASSWD: /bin/bash -c echo * > /sys/class/power_supply/BAT*/charge_control_end_threshold
-EOF
-
-# Install from AUR (if available)
-yay -S universal-battery-limiter
-
-# Or manual compilation
-makepkg -si
-```
-
-#### **openSUSE:**
-```bash
-# Use wheel group
-sudo tee /etc/sudoers.d/battery-limiter > /dev/null << 'EOF'
-%wheel ALL=(ALL) NOPASSWD: /bin/bash -c echo * > /sys/class/power_supply/BAT*/charge_control_end_threshold
-EOF
-
-# Install dependencies
-sudo zypper install python3-gobject python3-gobject-Gdk typelib-1_0-AppIndicator3-0_1
-```
-
-### 🔐 **Security Considerations**
-
-#### **Principle of Least Privilege**
-The application is designed to require minimal permissions:
-
-1. **Battery Control Only**: Sudoers rules are specific to battery threshold files
-2. **No Root GUI**: GUI components run as normal user
-3. **Sandboxed Operations**: System modifications are isolated to specific scripts
-4. **Audit Trail**: All privileged operations are logged
-
-#### **Permission Verification**
-```bash
-# Verify sudoers configuration
-sudo visudo -c -f /etc/sudoers.d/battery-limiter
-
-# Test battery access without full sudo
-echo 80 | sudo tee /sys/class/power_supply/BAT0/charge_control_end_threshold
-
-# Check file permissions
-ls -la /sys/class/power_supply/BAT*/charge_control_end_threshold
-
-# Verify no unnecessary permissions
-sudo -l | grep battery
-```
-
-#### **Alternative Permission Methods**
-
-**Method 1: Polkit Rules (Most Secure)**
-```bash
-# Create polkit rule for battery control
-sudo tee /etc/polkit-1/rules.d/99-battery-limiter.rules > /dev/null << 'EOF'
-polkit.addRule(function(action, subject) {
-    if (action.id == "org.freedesktop.systemd1.manage-units" &&
-        action.lookup("unit") == "battery-limiter.service" &&
-        subject.isInGroup("sudo")) {
-        return polkit.Result.YES;
-    }
-});
-EOF
-```
-
-**Method 2: Custom Setuid Binary (Advanced Users)**
-```bash
-# Compile setuid helper (requires C compiler)
-gcc -o battery-helper battery-helper.c
-sudo chown root:root battery-helper
-sudo chmod 4755 battery-helper
-```
-
-### �🔄 Enhanced Installation Process
+### 🔄 Enhanced Installation Process
 
 The installation process now includes:
 
@@ -459,7 +214,7 @@ ls -la /sys/class/power_supply/BAT*/charge_control_end_threshold
 # Fix sudo permissions
 sudo tee /etc/sudoers.d/battery-limiter > /dev/null << 'EOF'
 %sudo ALL=(ALL) NOPASSWD: /usr/local/bin/set-charge-limit.sh
-%sudo ALL=(ALL) NOPASSWD: /bin/bash -c echo * > /sys/class/power_supply/BAT0/charge_control_end_threshold
+%sudo ALL=(ALL) NOPASSWD: /bin/bash -c "echo * > /sys/class/power_supply/BAT*/charge_control_end_threshold"
 EOF
 
 sudo chmod 440 /etc/sudoers.d/battery-limiter
@@ -782,7 +537,7 @@ This section covers comprehensive installation instructions for all major packag
 **🔹 Standard Installation (Recommended)**
 ```bash
 # Download the latest .deb package
-wget https://github.com/username/Battery-Limiter/releases/latest/download/universal-battery-limiter.deb
+wget https://github.com/FrancyAlinston/Battery-Limter/releases/latest/download/universal-battery-limiter.deb
 
 # Install the package
 sudo dpkg -i universal-battery-limiter.deb
@@ -880,7 +635,7 @@ snap connections universal-battery-limiter
 **🔹 Download and Setup**
 ```bash
 # Download AppImage
-wget https://github.com/username/Battery-Limiter/releases/latest/download/Universal-Battery-Limiter.AppImage
+wget https://github.com/FrancyAlinston/Battery-Limter/releases/latest/download/Universal-Battery-Limiter.AppImage
 
 # Make executable
 chmod +x Universal-Battery-Limiter.AppImage
@@ -912,14 +667,14 @@ update-desktop-database ~/.local/share/applications/
 # you need to install the sudo permission helper separately
 
 # Download permission helper
-wget https://raw.githubusercontent.com/username/Battery-Limiter/main/set-charge-limit.sh
+wget https://raw.githubusercontent.com/FrancyAlinston/Battery-Limter/main/set-charge-limit.sh
 sudo cp set-charge-limit.sh /usr/local/bin/
 sudo chmod +x /usr/local/bin/set-charge-limit.sh
 
 # Setup sudo permissions
 sudo tee /etc/sudoers.d/battery-limiter > /dev/null << 'EOF'
 %sudo ALL=(ALL) NOPASSWD: /usr/local/bin/set-charge-limit.sh
-%sudo ALL=(ALL) NOPASSWD: /bin/bash -c echo * > /sys/class/power_supply/BAT*/charge_control_end_threshold
+%sudo ALL=(ALL) NOPASSWD: /bin/bash -c "echo * > /sys/class/power_supply/BAT*/charge_control_end_threshold"
 EOF
 
 sudo chmod 440 /etc/sudoers.d/battery-limiter
@@ -933,8 +688,8 @@ sudo /usr/local/bin/set-charge-limit.sh 80
 **🔹 Clone and Install from Source**
 ```bash
 # Clone the repository
-git clone https://github.com/username/Battery-Limiter.git
-cd Battery-Limiter
+git clone https://github.com/FrancyAlinston/Battery-Limter.git
+cd Battery-Limter
 
 # Make install script executable
 chmod +x install.sh
@@ -962,7 +717,7 @@ sudo chmod +x /usr/local/bin/set-charge-limit.sh
 # Setup permissions
 sudo tee /etc/sudoers.d/battery-limiter > /dev/null << 'EOF'
 %sudo ALL=(ALL) NOPASSWD: /usr/local/bin/set-charge-limit.sh
-%sudo ALL=(ALL) NOPASSWD: /bin/bash -c echo * > /sys/class/power_supply/BAT*/charge_control_end_threshold
+%sudo ALL=(ALL) NOPASSWD: /bin/bash -c "echo * > /sys/class/power_supply/BAT*/charge_control_end_threshold"
 EOF
 
 sudo chmod 440 /etc/sudoers.d/battery-limiter
@@ -993,7 +748,7 @@ sudo update-desktop-database /usr/share/applications/
 sudo tee /etc/sudoers.d/battery-limiter > /dev/null << 'EOF'
 # Battery Limiter permissions
 %sudo ALL=(ALL) NOPASSWD: /usr/local/bin/set-charge-limit.sh
-%sudo ALL=(ALL) NOPASSWD: /bin/bash -c echo * > /sys/class/power_supply/BAT*/charge_control_end_threshold
+%sudo ALL=(ALL) NOPASSWD: /bin/bash -c "echo * > /sys/class/power_supply/BAT*/charge_control_end_threshold"
 %sudo ALL=(ALL) NOPASSWD: /bin/tee /sys/class/power_supply/BAT*/charge_control_end_threshold
 EOF
 
@@ -1148,8 +903,8 @@ sudo apt remove universal-battery-limiter
 sudo snap remove universal-battery-limiter
 
 # Install from source
-git clone https://github.com/username/Battery-Limiter.git
-cd Battery-Limiter
+git clone https://github.com/FrancyAlinston/Battery-Limter.git
+cd Battery-Limter
 sudo ./install.sh
 ```
 
@@ -1204,7 +959,7 @@ python3 -c "import gi; gi.require_version('AppIndicator3', '0.1'); print('AppInd
 **📚 For more installation help, see:**
 - [INSTALL.md](INSTALL.md) - Basic installation guide
 - [README.md](README.md) - Project overview and quick start
-- [GitHub Releases](https://github.com/username/Battery-Limiter/releases) - Download packages
-- [Issues](https://github.com/username/Battery-Limiter/issues) - Report problems
+- [GitHub Releases](https://github.com/FrancyAlinston/Battery-Limter/releases) - Download packages
+- [Issues](https://github.com/FrancyAlinston/Battery-Limter/issues) - Report problems
 
 ```
