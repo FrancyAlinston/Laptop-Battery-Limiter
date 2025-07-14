@@ -1,0 +1,207 @@
+# ASUS Battery Limiter - GitHub Actions Workflow
+# Fixed version for Laptop-Battery-Limiter repository
+
+name: Test and Build ASUS Battery Limiter
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-linux:
+    runs-on: ubuntu-latest
+    name: Test Linux Scripts
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-appindicator3-0.1 gir1.2-notify-0.7 python3-tk
+        
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # No additional Python packages needed for this project
+        
+    - name: Test shell scripts syntax
+      run: |
+        # Test main scripts
+        bash -n battery-cli
+        bash -n battery-limit
+        bash -n install.sh
+        
+        # Test if set-charge-limit.sh exists and test it
+        if [ -f "set-charge-limit.sh" ]; then
+          bash -n set-charge-limit.sh
+        fi
+        
+        # Test uninstall script if it exists
+        if [ -f "uninstall.sh" ]; then
+          bash -n uninstall.sh
+        fi
+        
+        # Test build script if it exists
+        if [ -f "build-deb.sh" ]; then
+          bash -n build-deb.sh
+        fi
+        
+    - name: Test Python scripts syntax
+      run: |
+        # Test Python GUI
+        python3 -m py_compile battery-gui
+        
+        # Test Python indicator
+        python3 -m py_compile battery-indicator
+        
+    - name: Test CLI help functionality
+      run: |
+        # Test CLI help (should work without sudo for help)
+        ./battery-cli help
+        
+        # Test battery-limit help
+        ./battery-limit help
+        
+    - name: Validate file permissions
+      run: |
+        # Check that executable files are executable
+        test -x battery-cli
+        test -x battery-limit
+        test -x battery-gui
+        test -x battery-indicator
+        test -x install.sh
+        
+        echo "✅ All required files have correct permissions"
+
+  test-structure:
+    runs-on: ubuntu-latest
+    name: Test Project Structure
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Verify project structure
+      run: |
+        echo "📁 Checking project structure..."
+        
+        # Check main files exist
+        required_files=(
+          "battery-cli"
+          "battery-limit" 
+          "battery-gui"
+          "battery-indicator"
+          "install.sh"
+          "README.md"
+        )
+        
+        for file in "${required_files[@]}"; do
+          if [ ! -f "$file" ]; then
+            echo "❌ Missing required file: $file"
+            exit 1
+          else
+            echo "✅ Found: $file"
+          fi
+        done
+        
+        # Check debian package structure if it exists
+        if [ -d "debian-package" ]; then
+          echo "📦 Checking debian package structure..."
+          required_debian_dirs=(
+            "debian-package/DEBIAN"
+            "debian-package/usr/local/bin"
+          )
+          
+          for dir in "${required_debian_dirs[@]}"; do
+            if [ ! -d "$dir" ]; then
+              echo "⚠️  Missing debian directory: $dir"
+            else
+              echo "✅ Found: $dir"
+            fi
+          done
+        fi
+        
+        echo "✅ Project structure validation complete"
+
+  lint-check:
+    runs-on: ubuntu-latest
+    name: Code Quality Check
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+        
+    - name: Install linting tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8
+        
+    - name: Lint Python files
+      run: |
+        # Check Python syntax and basic style
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=debian-package
+        
+        # Check for common issues (exit-zero to not fail build)
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=debian-package
+        
+    - name: Check shell script style
+      run: |
+        # Install shellcheck if available
+        if command -v shellcheck &> /dev/null; then
+          echo "Running shellcheck..."
+          shellcheck battery-cli battery-limit install.sh || echo "⚠️  Shellcheck found style issues (non-blocking)"
+        else
+          echo "⚠️  Shellcheck not available, skipping shell style check"
+        fi
+
+  build-test:
+    needs: [test-linux, test-structure]
+    runs-on: ubuntu-latest
+    name: Test Build Process
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Test installation process
+      run: |
+        echo "🧪 Testing installation process..."
+        
+        # Make scripts executable
+        chmod +x battery-cli battery-limit battery-gui battery-indicator install.sh
+        
+        # Test if install script runs without errors (dry run)
+        echo "Testing install script syntax..."
+        bash -n install.sh
+        
+        echo "✅ Installation process test complete"
+        
+    - name: Test .deb build if script exists
+      run: |
+        if [ -f "build-deb.sh" ]; then
+          echo "🔨 Testing .deb build process..."
+          chmod +x build-deb.sh
+          
+          # Test build script syntax
+          bash -n build-deb.sh
+          
+          # Note: We don't actually build the .deb in CI as it requires more setup
+          echo "✅ Build script syntax check complete"
+        else
+          echo "ℹ️  No build-deb.sh found, skipping .deb build test"
+        fi

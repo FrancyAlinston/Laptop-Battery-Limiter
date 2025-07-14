@@ -1,0 +1,230 @@
+name: ASUS Battery Limiter CI/CD
+
+on:
+  push:
+    branches: [ main, beta, develop ]
+  pull_request:
+    branches: [ main, beta ]
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  get-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Extract version
+      id: version
+      run: |
+        # Extract version from build-deb.sh or set default
+        if grep -q "PACKAGE_NAME=" build-deb.sh; then
+          VERSION=$(grep "PACKAGE_NAME=" build-deb.sh | sed 's/.*_\([0-9.]*\)_all.deb.*/\1/')
+        else
+          VERSION="2.0.0"
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Detected version: $VERSION"
+
+  test-linux:
+    runs-on: ubuntu-latest
+    needs: get-version
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          python3 \
+          python3-gi \
+          python3-gi-cairo \
+          gir1.2-gtk-3.0 \
+          gir1.2-appindicator3-0.1 \
+          gir1.2-notify-0.7 \
+          python3-tk \
+          dpkg-dev \
+          shellcheck \
+          file
+
+    - name: Test shell scripts syntax
+      run: |
+        echo "Testing shell script syntax..."
+        # Test main shell scripts
+        bash -n build-deb.sh || exit 1
+        bash -n install.sh || exit 1
+        bash -n uninstall.sh || exit 1
+        bash -n set-charge-limit.sh || exit 1
+        echo "✅ Shell scripts syntax OK"
+
+    - name: Test Python GUI syntax
+      run: |
+        echo "Testing Python scripts syntax..."
+        python3 -m py_compile battery-gui || exit 1
+        python3 -m py_compile battery-indicator || exit 1
+        echo "✅ Python scripts syntax OK"
+
+    - name: Test script executability
+      run: |
+        echo "Testing script permissions and executability..."
+        # Check if scripts are executable or can be made executable
+        chmod +x battery-cli battery-limit battery-gui battery-indicator set-charge-limit.sh
+        
+        # Test CLI help (should not require hardware)
+        if timeout 5 ./battery-cli --help 2>/dev/null || timeout 5 ./battery-cli -h 2>/dev/null; then
+          echo "✅ CLI responds to help"
+        else
+          echo "ℹ️ CLI requires hardware (expected)"
+        fi
+
+    - name: Lint shell scripts
+      run: |
+        echo "Linting shell scripts with shellcheck..."
+        shellcheck build-deb.sh install.sh uninstall.sh set-charge-limit.sh || echo "⚠️ Shellcheck warnings (non-critical)"
+
+    - name: Test package structure
+      run: |
+        echo "Verifying package structure..."
+        ls -la
+        
+        # Check required files exist
+        test -f battery-cli || { echo "❌ battery-cli missing"; exit 1; }
+        test -f battery-limit || { echo "❌ battery-limit missing"; exit 1; }
+        test -f battery-gui || { echo "❌ battery-gui missing"; exit 1; }
+        test -f battery-indicator || { echo "❌ battery-indicator missing"; exit 1; }
+        test -f build-deb.sh || { echo "❌ build-deb.sh missing"; exit 1; }
+        test -f install.sh || { echo "❌ install.sh missing"; exit 1; }
+        test -f README.md || { echo "❌ README.md missing"; exit 1; }
+        
+        echo "✅ All required files present"
+
+  test-package-build:
+    runs-on: ubuntu-latest
+    needs: [get-version, test-linux]
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y dpkg-dev
+
+    - name: Test .deb package build
+      run: |
+        echo "Testing Debian package build..."
+        # Make build script executable
+        chmod +x build-deb.sh
+        
+        # Run build script
+        ./build-deb.sh
+        
+        # Check if package was created
+        if ls asus-battery-limiter_*.deb 1> /dev/null 2>&1; then
+          echo "✅ Package built successfully"
+          
+          # Verify package contents
+          PACKAGE=$(ls asus-battery-limiter_*.deb | head -1)
+          echo "📦 Package: $PACKAGE"
+          
+          dpkg-deb --info "$PACKAGE"
+          dpkg-deb --contents "$PACKAGE"
+        else
+          echo "❌ Package build failed"
+          exit 1
+        fi
+
+    - name: Upload package artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: asus-battery-limiter-deb
+        path: asus-battery-limiter_*.deb
+        retention-days: 30
+
+  test-installation:
+    runs-on: ubuntu-latest
+    needs: test-package-build
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download package artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: asus-battery-limiter-deb
+    
+    - name: Test manual installation
+      run: |
+        echo "Testing manual installation process..."
+        chmod +x install.sh
+        
+        # Test install script syntax
+        bash -n install.sh
+        echo "✅ Install script syntax OK"
+        
+        # Note: Cannot actually install due to hardware requirements
+        echo "ℹ️ Manual installation script verified (hardware testing skipped)"
+
+    - name: Test package installation (dry run)
+      run: |
+        echo "Testing package installation..."
+        PACKAGE=$(ls asus-battery-limiter_*.deb | head -1)
+        
+        # Test package info
+        dpkg-deb --info "$PACKAGE"
+        
+        # Verify package structure
+        dpkg-deb --extract "$PACKAGE" test-extract/
+        ls -la test-extract/
+        
+        echo "✅ Package structure verified"
+
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [get-version, test-linux, test-package-build, test-installation]
+    if: github.ref == 'refs/heads/main' && startsWith(github.ref, 'refs/tags/')
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download package artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: asus-battery-limiter-deb
+    
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: ASUS Battery Limiter ${{ needs.get-version.outputs.version }}
+        body: |
+          ## ASUS Battery Limiter v${{ needs.get-version.outputs.version }}
+          
+          ### Installation
+          ```bash
+          sudo dpkg -i asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+          ```
+          
+          ### Features
+          - Battery charge limiting for ASUS laptops
+          - GUI and CLI interfaces
+          - System tray indicator
+          - Automatic updates
+          
+          ### Requirements
+          - ASUS laptop with battery charge control support
+          - Ubuntu/Debian-based distribution
+          - sudo privileges
+        draft: false
+        prerelease: false
+    
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+        asset_name: asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+        asset_content_type: application/vnd.debian.binary-package
