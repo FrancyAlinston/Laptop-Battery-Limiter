@@ -27,7 +27,7 @@ print_header() {
 # Detect repository type
 detect_repo_type() {
     if [ -f "battery-cli" ] && [ -f "battery-limit" ] && [ -f "build-deb.sh" ]; then
-        echo "asus-battery-limiter"
+        echo "laptop-battery-limiter"
     elif [ -f "python-app.yml" ] || [ -f ".github/workflows/python-app.yml" ]; then
         echo "universal-battery-limiter"
     else
@@ -69,7 +69,7 @@ check_repo_structure() {
     print_colored $YELLOW "📁 Checking repository structure..."
     
     case $repo_type in
-        "asus-battery-limiter")
+        "laptop-battery-limiter")
             required_files=("battery-cli" "battery-limit" "battery-gui" "battery-indicator" "install.sh" "build-deb.sh" "README.md")
             ;;
         "universal-battery-limiter")
@@ -107,7 +107,7 @@ test_script_syntax() {
     print_colored $YELLOW "🔍 Testing script syntax..."
     
     case $repo_type in
-        "asus-battery-limiter")
+        "laptop-battery-limiter")
             # Test shell scripts
             for script in battery-cli battery-limit install.sh uninstall.sh build-deb.sh set-charge-limit.sh; do
                 if [ -f "$script" ]; then
@@ -143,17 +143,17 @@ test_script_syntax() {
     esac
 }
 
-# Create fixed workflow for ASUS repository
-create_asus_workflow() {
+# Create fixed workflow for laptop battery limiter repositories
+create_laptop_workflow() {
     local workflow_dir=".github/workflows"
-    local workflow_file="$workflow_dir/asus-battery-limiter.yml"
+    local workflow_file="$workflow_dir/laptop-battery-limiter.yml"
     
-    print_colored $YELLOW "📝 Creating fixed workflow for ASUS Battery Limiter..."
+    print_colored $YELLOW "📝 Creating fixed workflow for Universal Battery Limiter..."
     
     mkdir -p "$workflow_dir"
     
     cat > "$workflow_file" << 'EOF'
-name: ASUS Battery Limiter CI/CD
+name: Universal Battery Limiter CI/CD
 
 on:
   push:
@@ -410,8 +410,8 @@ main() {
     
     # Create appropriate workflow
     case $REPO_TYPE in
-        "asus-battery-limiter")
-            create_asus_workflow
+        "laptop-battery-limiter")
+            create_laptop_workflow
             ;;
         "universal-battery-limiter")
             print_colored $YELLOW "ℹ️ Universal Battery Limiter workflows should already be fixed"
@@ -423,9 +423,9 @@ main() {
     esac
     
     # Validate created workflow
-    if [ -f ".github/workflows/asus-battery-limiter.yml" ]; then
+    if [ -f ".github/workflows/laptop-battery-limiter.yml" ]; then
         print_colored $YELLOW "🔍 Validating created workflow..."
-        validate_workflow_yaml ".github/workflows/asus-battery-limiter.yml"
+        validate_workflow_yaml ".github/workflows/laptop-battery-limiter.yml"
     fi
     
     print_header "✅ Workflow Diagnostic and Fix Complete"

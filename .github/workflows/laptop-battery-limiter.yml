@@ -1,4 +1,4 @@
-name: ASUS Battery Limiter CI/CD
+name: Universal Battery Limiter CI/CD
 
 on:
   push:
@@ -121,11 +121,11 @@ jobs:
         ./build-deb.sh
         
         # Check if package was created
-        if ls asus-battery-limiter_*.deb 1> /dev/null 2>&1; then
+        if ls universal-battery-limiter_*.deb 1> /dev/null 2>&1; then
           echo "✅ Package built successfully"
           
           # Verify package contents
-          PACKAGE=$(ls asus-battery-limiter_*.deb | head -1)
+          PACKAGE=$(ls universal-battery-limiter_*.deb | head -1)
           echo "📦 Package: $PACKAGE"
           
           dpkg-deb --info "$PACKAGE"
@@ -138,8 +138,8 @@ jobs:
     - name: Upload package artifact
       uses: actions/upload-artifact@v4
       with:
-        name: asus-battery-limiter-deb
-        path: asus-battery-limiter_*.deb
+        name: universal-battery-limiter-deb
+        path: universal-battery-limiter_*.deb
         retention-days: 30
 
   test-installation:
@@ -151,7 +151,7 @@ jobs:
     - name: Download package artifact
       uses: actions/download-artifact@v4
       with:
-        name: asus-battery-limiter-deb
+        name: universal-battery-limiter-deb
     
     - name: Test manual installation
       run: |
@@ -168,7 +168,7 @@ jobs:
     - name: Test package installation (dry run)
       run: |
         echo "Testing package installation..."
-        PACKAGE=$(ls asus-battery-limiter_*.deb | head -1)
+        PACKAGE=$(ls universal-battery-limiter_*.deb | head -1)
         
         # Test package info
         dpkg-deb --info "$PACKAGE"
@@ -189,7 +189,7 @@ jobs:
     - name: Download package artifact
       uses: actions/download-artifact@v4
       with:
-        name: asus-battery-limiter-deb
+        name: universal-battery-limiter-deb
     
     - name: Create Release
       uses: actions/create-release@v1
@@ -197,23 +197,23 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref }}
-        release_name: ASUS Battery Limiter ${{ needs.get-version.outputs.version }}
+        release_name: Universal Battery Limiter ${{ needs.get-version.outputs.version }}
         body: |
-          ## ASUS Battery Limiter v${{ needs.get-version.outputs.version }}
+          ## Universal Battery Limiter v${{ needs.get-version.outputs.version }}
           
           ### Installation
           ```bash
-          sudo dpkg -i asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+          sudo dpkg -i universal-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
           ```
           
           ### Features
-          - Battery charge limiting for ASUS laptops
+          - Battery charge limiting for compatible laptops (ASUS, Lenovo, Dell, HP, etc.)
           - GUI and CLI interfaces
           - System tray indicator
           - Automatic updates
           
           ### Requirements
-          - ASUS laptop with battery charge control support
+          - Compatible laptop with battery charge control support
           - Ubuntu/Debian-based distribution
           - sudo privileges
         draft: false
@@ -225,6 +225,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
-        asset_name: asus-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+        asset_path: ./universal-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
+        asset_name: universal-battery-limiter_${{ needs.get-version.outputs.version }}_all.deb
         asset_content_type: application/vnd.debian.binary-package

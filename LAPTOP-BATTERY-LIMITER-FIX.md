@@ -140,10 +140,10 @@ The workflow failure was caused by a **mismatch between the workflow configurati
 
 ## 🚀 Implementation Steps
 
-### For ASUS Battery Limiter Repository
+### For Universal Battery Limiter Repository
 1. **Copy the fixed workflow**:
    ```bash
-   cp fixed-laptop-battery-limiter-workflow.yml .github/workflows/asus-battery-limiter.yml
+   cp laptop-battery-limiter.yml .github/workflows/
    ```
 
 2. **Remove old workflow** (if exists):
@@ -158,8 +158,8 @@ The workflow failure was caused by a **mismatch between the workflow configurati
 
 4. **Commit and push**:
    ```bash
-   git add .github/workflows/asus-battery-limiter.yml
-   git commit -m "🔧 Fix GitHub Actions workflow for ASUS Battery Limiter"
+   git add .github/workflows/laptop-battery-limiter.yml
+   git commit -m "🔧 Fix GitHub Actions workflow for Universal Battery Limiter"
    git push
    ```
 
@@ -233,5 +233,5 @@ The workflows should already be working. If issues arise:
 
 ---
 
-**Status**: ✅ **COMPLETE** - ASUS Battery Limiter workflow issues diagnosed and fixed
+**Status**: ✅ **COMPLETE** - Universal Battery Limiter workflow issues diagnosed and fixed
 **Next**: Apply the fix to the actual repository and verify successful runs
